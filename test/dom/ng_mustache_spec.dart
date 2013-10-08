@@ -5,8 +5,8 @@ import '../_test_bed.dart';
 
 main() {
   describe('ng-mustache', () {
-    it('should replace {{}} in text', inject((Compiler $compile, Scope $rootScope, Injector injector) {
-      var element = $('<div>{{name}}<span>!</span></div>');
+    it('should replace «» in text', inject((Compiler $compile, Scope $rootScope, Injector injector) {
+      var element = $('<div>«name»<span>!</span></div>');
       var template = $compile(element);
 
       $rootScope.name = 'OK';
@@ -20,8 +20,8 @@ main() {
     }));
 
 
-    it('should replace {{}} in attribute', inject((Compiler $compile, Scope $rootScope, Injector injector) {
-      var element = $('<div some-attr="{{name}}" other-attr="{{age}}"></div>');
+    it('should replace «» in attribute', inject((Compiler $compile, Scope $rootScope, Injector injector) {
+      var element = $('<div some-attr="«name»" other-attr="«age»"></div>');
       var template = $compile(element);
 
       $rootScope.name = 'OK';

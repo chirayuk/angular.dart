@@ -9,7 +9,7 @@ import 'common.dart';
 
 typedef NodeVisitor(Node node);
 
-RegExp _MUSTACHE_REGEXP = new RegExp(r'{{([^}]*)}}');
+RegExp _MUSTACHE_REGEXP = new RegExp(r'«([^»]*)»');
 RegExp _NG_REPEAT_SYNTAX = new RegExp(r'^\s*(.+)\s+in\s+(.*?)\s*(\s+track\s+by\s+(.+)\s*)?$');
 
 class HtmlExpressionExtractor {
@@ -27,14 +27,14 @@ class HtmlExpressionExtractor {
       String html = ioService.readAsStringSync(file);
       var document = parse(html);
       visitNodes([document], (Node node) {
-        if (matchesNode(node, r'[*=/{{.*}}/]')) {
+        if (matchesNode(node, r'[*=/«.*»/]')) {
           node.attributes.forEach((attrName, attrValue) {
             _MUSTACHE_REGEXP.allMatches(attrValue).forEach((match) {
               expressions.add(match.group(1));
             });
           });
         }
-        if (matchesNode(node, r':contains(/{{.*}}/)')) {
+        if (matchesNode(node, r':contains(/«.*»/)')) {
           _MUSTACHE_REGEXP.allMatches(node.value).forEach((match) {
             expressions.add(match.group(1));
           });

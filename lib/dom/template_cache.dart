@@ -35,7 +35,7 @@ import 'http.dart';
  *       LoadTemplateCacheDirective(TemplateCache templateCache, Scope scope) {
  *         // Method 1 (imperative): Via the injected TemplateCache service.
  *         templateCache.put(
- *             'template_1.html', new HttpResponse(200, 't1: My name is {{name}}.'));
+ *             'template_1.html', new HttpResponse(200, 't1: My name is «name».'));
  *         scope.name = "chirayu";
  *       }
  *     }
@@ -54,7 +54,7 @@ import 'http.dart';
  *
  *         <!-- Method 2 (declarative): Via the template directive. -->
  *         <template id="template_2.html" type="text/ng-template">
- *           t2: My name is {{name}}.
+ *           t2: My name is «name».
  *         </template>
  *       </head>
  *       <body load-template-cache>

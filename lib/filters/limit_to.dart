@@ -19,15 +19,15 @@ part of angular.filter;
  *
  * Example:
  *
- * - `{{ 'abcdefghij' | limitTo: 4 }}` → `'abcd'`
- * - `{{ 'abcdefghij' | limitTo: -4 }}` → `'ghij'`
- * - `{{ 'abcdefghij' | limitTo: -100 }}` → `'abcdefghij'`
+ * - `« 'abcdefghij' | limitTo: 4 »` → `'abcd'`
+ * - `« 'abcdefghij' | limitTo: -4 »` → `'ghij'`
+ * - `« 'abcdefghij' | limitTo: -100 »` → `'abcdefghij'`
  *
  * <br>
  *
  * This [ng-repeat] directive:
  *
- *     <li ng-repeat="i in 'abcdefghij' | limitTo:-2">{{i}}</li>
+ *     <li ng-repeat="i in 'abcdefghij' | limitTo:-2">«i»</li>
  *
  * results in
  *

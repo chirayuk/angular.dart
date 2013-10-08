@@ -10,7 +10,7 @@ main() {
     beforeEach(beforeEachTestBed((tb) => _ = tb));
 
     it('should fetch template from url', async(inject((Scope scope, TemplateCache cache) {
-      cache.put('tpl.html', new HttpResponse(200, 'my name is {{name}}'));
+      cache.put('tpl.html', new HttpResponse(200, 'my name is «name»'));
 
       var element = _.compile('<div ng-include="template"></div>');
 
@@ -31,7 +31,7 @@ main() {
 
       scope.$apply(() {
         scope['name'] = 'Vojta';
-        scope['template'] = '<span>my inlined name is {{name}}</span>';
+        scope['template'] = '<span>my inlined name is «name»</span>';
       });
       expect(element.text()).toEqual('my inlined name is Vojta');
     }));

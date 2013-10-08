@@ -11,7 +11,7 @@ main() => describe('html_extractor', () {
   it('should extract text mustache expressions', () {
     var ioService = new MockIoService({
       'foo.html': r'''
-        <div>foo {{ctrl.bar}} baz {{aux}}</div>
+        <div>foo «ctrl.bar» baz «aux»</div>
       '''
     });
 
@@ -24,7 +24,7 @@ main() => describe('html_extractor', () {
   it('should extract attribute mustache expressions', () {
     var ioService = new MockIoService({
       'foo.html': r'''
-        <div foo="foo-{{ctrl.bar}}" baz="{{aux}}-baz"></div>
+        <div foo="foo-«ctrl.bar»" baz="«aux»-baz"></div>
       '''
     });
 

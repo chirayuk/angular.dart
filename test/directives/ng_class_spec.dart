@@ -173,7 +173,7 @@ main() {
     it('should allow both ngClass and ngClassOdd/Even on the same element', () {
       var element = _.compile('<ul>' +
           '<li ng-repeat="i in [0,1]" ng-class="\'plainClass\'" ' +
-          'ng-class-odd="\'odd\'" ng-class-even="\'even\'">{{\$index}}</li>' +
+          'ng-class-odd="\'odd\'" ng-class-even="\'even\'">«\$index»</li>' +
       '<ul>');
       _.rootScope.$digest();
       var e1 = $(element[0].nodes[1]);
@@ -213,7 +213,7 @@ main() {
 
 
     it('should reapply ngClass when interpolated class attribute changes', () {
-      var element = _.compile('<div class="one {{cls}} three" ng-class="{four: four}"></div>');
+      var element = _.compile('<div class="one «cls» three" ng-class="{four: four}"></div>');
 
       _.rootScope.$apply(() {
         _.rootScope.cls = "two";

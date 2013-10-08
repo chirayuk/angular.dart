@@ -68,7 +68,7 @@ class NgAnnotation {
    * specified, it maps to the same scope parameter as is the DOM attribute.
    *
    * * `@` - Map the DOM attribute string. The attribute string will be taken
-   *   literally or interpolated if it contains binding {{}} systax.
+   *   literally or interpolated if it contains binding «» systax.
    *
    * * `=` - Treat the DOM attribute value as an expression. Set up a watch
    *   on both outside as well as component scope to keep the src and
@@ -88,7 +88,7 @@ class NgAnnotation {
    *
    * Example:
    *
-   *     <my-component title="Hello {{username}}"
+   *     <my-component title="Hello «username»"
    *                   selection="selectedItem"
    *                   on-selection-change="doSomething()">
    *
@@ -110,7 +110,7 @@ class NgAnnotation {
    *
    *  * `@.title` maps the title DOM attribute to the controller `title`
    *    field. Notice that this maps the content of the attribute, which
-   *    means that it can be used with `{{}}` interpolation.
+   *    means that it can be used with `«»` interpolation.
    *
    *  * `=.currentItem` maps the expression (in this case the `selectedItem`
    *    in the current scope into the `currentItem` in the controller. Notice

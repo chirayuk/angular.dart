@@ -8,13 +8,13 @@ part of angular.directive;
  *
  * Example:
  *
- *     <div foo="{{a}}" ng-non-bindable>
- *       <span ng-bind="b"></span>{{b}}
+ *     <div foo="«a»" ng-non-bindable>
+ *       <span ng-bind="b"></span>«b»
  *     </div>
  *
  * In the above example, because the `div` element has the `ng-non-bindable`
  * attribute set on it, the `ng-bind` directive and the interpolation for
- * `{{b}}` are not processed because Angular will not process the `span` child
+ * `«b»` are not processed because Angular will not process the `span` child
  * element.  However, the `foo` attribute *will* be interpolated because it is
  * not on a child node. 
  */

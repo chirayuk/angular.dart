@@ -3,13 +3,13 @@ part of angular.directive;
 /**
  * Allows adding and removing the boolean attributes from the element.
  *
- * Using `<button disabled="{{false}}">` does not work since it would result
+ * Using `<button disabled="«false»">` does not work since it would result
  * in `<button disabled="false">` rather than `<button>`.
  * Browsers change behavior based on presence/absence of attribute rather the
  * its value.
  *
  * For this reason we provide alternate `ng-`attribute directives to
- * add/remove boolean attributes such as `<button ng-disabled="{{false}}">`
+ * add/remove boolean attributes such as `<button ng-disabled="«false»">`
  * which will result in proper removal of the attribute.
  *
  * The full list of supported attributes are:
@@ -46,14 +46,14 @@ class NgBooleanAttributeDirective {
 
 /**
  * In browser some attributes have network side-effect. If the attribute
- * has `{{interpolation}}` in it it may cause browser to fetch bogus URLs.
+ * has `«interpolation»` in it it may cause browser to fetch bogus URLs.
  *
- * Example: In `<img src="{{username}}.png">` the browser will fetch the image
- * `http://server/{{username}}.png` before Angular has a chance to replace the
+ * Example: In `<img src="«username».png">` the browser will fetch the image
+ * `http://server/«username».png` before Angular has a chance to replace the
  * attribute with data-bound url.
  *
  * For this reason we provide `ng-`prefixed attributes which avoid the issues
- * mentioned above as in this example: `<img ng-src="{{username}}.png">`.
+ * mentioned above as in this example: `<img ng-src="«username».png">`.
  *
  * The full list of supported attributes are:
  *

@@ -95,7 +95,7 @@ main() {
 
 
     it('should compile text', inject((Compiler $compile) {
-      var element = $('<div>{{name}}<span>!</span></div>').contents();
+      var element = $('<div>«name»<span>!</span></div>').contents();
       element.remove(null);
       print('test');
 
@@ -116,7 +116,7 @@ main() {
       var element = $(
           '<div>' +
             '<ul ng-repeat="lis in uls">' +
-               '<li ng-repeat="li in lis">{{li}}</li>' +
+               '<li ng-repeat="li in lis">«li»</li>' +
             '</ul>' +
           '</div>');
       var template = $compile(element);
@@ -132,7 +132,7 @@ main() {
 
     describe("interpolation", () {
       it('should interpolate attribute nodes', inject(() {
-        var element = $('<div test="{{name}}"></div>');
+        var element = $('<div test="«name»"></div>');
         var template = $compile(element);
 
         $rootScope.name = 'angular';
@@ -144,7 +144,7 @@ main() {
 
 
       it('should interpolate text nodes', inject(() {
-        var element = $('<div>{{name}}</div>');
+        var element = $('<div>«name»</div>');
         var template = $compile(element);
 
         $rootScope.name = 'angular';
@@ -189,7 +189,7 @@ main() {
       it('should create a simple component', async(inject((Zone zone) {
         $rootScope.name = 'OUTTER';
         $rootScope.sep = '-';
-        var element = $(r'<div>{{name}}{{sep}}{{$id}}:<simple>{{name}}{{sep}}{{$id}}</simple></div>');
+        var element = $(r'<div>«name»«sep»«$id»:<simple>«name»«sep»«$id»</simple></div>');
 
         zone.run(() {
           BlockFactory blockFactory = $compile(element);
@@ -303,7 +303,7 @@ main() {
       })));
 
       it('should create a map attribute to controller', async(() {
-        var element = $(r'<div><io-controller attr="{{name}}"></io-controller></div>');
+        var element = $(r'<div><io-controller attr="«name»"></io-controller></div>');
         $compile(element)(injector, element);
         microLeap();
 
@@ -386,7 +386,7 @@ main() {
       })));
 
       it('should publish directive controller into the scope', async(inject((Zone zone) {
-        var element = $(r'<div><div publish-me>{{ctrlName.value}}</div></div>');
+        var element = $(r'<div><div publish-me>«ctrlName.value»</div></div>');
         zone.run(() =>
         $compile(element)(injector, element));
 
@@ -521,7 +521,7 @@ class PublishTypesAttrDirective implements PublishTypesDirectiveSuperType {
 
 @NgComponent(
     selector: 'simple',
-    template: r'{{name}}{{sep}}{{$id}}(<content>SHADOW-CONTENT</content>)'
+    template: r'«name»«sep»«$id»(<content>SHADOW-CONTENT</content>)'
 )
 class SimpleComponent {
   SimpleComponent(Scope scope) {
@@ -620,7 +620,7 @@ class CamelCaseMapComponent {
 
 @NgComponent(
     selector: 'parent-expression',
-    template: '<div>inside {{fromParent()}}</div>',
+    template: '<div>inside «fromParent()»</div>',
     map: const {
       'fromParent': '&',
     }
@@ -630,7 +630,7 @@ class ParentExpressionComponent {
 
 @NgComponent(
     selector: 'publish-me',
-    template: r'<content>{{ctrlName.value}}</content>',
+    template: r'<content>«ctrlName.value»</content>',
     publishAs: 'ctrlName'
 )
 class PublishMeComponent {

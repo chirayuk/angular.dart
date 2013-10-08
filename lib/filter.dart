@@ -24,7 +24,7 @@ import 'registry.dart';
  *
  *
  *     <!-- Usage -->
- *     <span>{{something | myFilter:arg1:arg2}}</span>
+ *     <span>«something | myFilter:arg1:arg2»</span>
  */
 class NgFilter {
   final String name;

@@ -10,7 +10,7 @@ part of angular.filter;
  * ascending order this way:
  *
  *     Colors: <ul>
- *       <li ng-repeat='color in colors | orderBy'>{{color}}</li>
+ *       <li ng-repeat='color in colors | orderBy'>«color»</li>
  *     </ul>
  *
  * That would result in:
@@ -27,7 +27,7 @@ part of angular.filter;
  * the expression making it an identity transformer.
  *
  *     Colors: <ul>
- *       <li ng-repeat='color in colors | orderBy:color:true'>{{color}}</li>
+ *       <li ng-repeat='color in colors | orderBy:color:true'>«color»</li>
  *     </ul>
  *
  * You may provide more complex expressions to sort non-primitives values or
@@ -46,7 +46,7 @@ part of angular.filter;
  * If you want to list the authors sorted by `lastName`, you would use
  *
  *     <li ng-repeat='author in authors | orderBy:lastName'>
- *       {{author.lastName}}, {{author.firstName
+ *       «author.lastName», «author.firstName
  *     </li>
  *
  * To reverse the order when you have an expression, you have two choices.  You
@@ -59,7 +59,7 @@ part of angular.filter;
  *
  *     <!-- Two reversals result in ascending order -->
  *     <li ng-repeat='author in authors | orderBy:-lastName:true'>
- *       {{author.lastName}}, {{author.firstName
+ *       «author.lastName», «author.firstName
  *     </li>
  */
 @NgFilter(name:'orderBy')

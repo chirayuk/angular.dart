@@ -5,7 +5,7 @@ part of angular.filter;
  *
  * Usage:
  *
- *     {{ lowercase_expression | lowercase }}
+ *     « lowercase_expression | lowercase »
  */
 @NgFilter(name:'lowercase')
 class LowercaseFilter {

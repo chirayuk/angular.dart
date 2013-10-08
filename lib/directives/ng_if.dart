@@ -78,7 +78,7 @@ abstract class _NgUnlessIfAttrDirectiveBase {
  *     <!-- By using ng-if instead of ng-show, we avoid the cost of the showdown
  *          filter, the repeater, etc. -->
  *     <div ng-if="showDetails">
- *        {{obj.details.markdownText | showdown}}
+ *        «obj.details.markdownText | showdown»
  *        <div ng-repeat="item in obj.details.items">
  *          ...
  *        </div>
@@ -134,7 +134,7 @@ class NgIfDirective extends _NgUnlessIfAttrDirectiveBase {
  *     <!-- By using ng-unless instead of ng-show, we avoid the cost of the showdown
  *          filter, the repeater, etc. -->
  *     <div ng-unless="terseView">
- *        {{obj.details.markdownText | showdown}}
+ *        «obj.details.markdownText | showdown»
  *        <div ng-repeat="item in obj.details.items">
  *          ...
  *        </div>

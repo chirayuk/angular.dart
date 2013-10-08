@@ -96,7 +96,7 @@ main() {
 
     it('should interpolate the expression and bind to src with raw same-domain value',
     inject(() {
-      _.compile('<div ng-src="{{id}}"></div>');
+      _.compile('<div ng-src="«id»"></div>');
 
       _.rootScope.$digest();
       expect(_.rootElement.attr('src')).toEqual('');
@@ -109,7 +109,7 @@ main() {
 
 
     xit('should interpolate the expression and bind to src with a trusted value', inject(($sce) {
-      _.compile('<div ng-src="{{id}}"></div>');
+      _.compile('<div ng-src="«id»"></div>');
 
       _.rootScope.$digest();
       expect(_.rootElement.attr('src')).toEqual(null);
@@ -123,15 +123,15 @@ main() {
 
     xit('should NOT interpolate a multi-part expression for non-img src attribute', inject(() {
       expect(() {
-        _.compile('<div ng-src="some/{{id}}"></div>');
-      }).toThrow("Error while interpolating: some/{{id}}\nStrict " +
+        _.compile('<div ng-src="some/«id»"></div>');
+      }).toThrow("Error while interpolating: some/«id»\nStrict " +
           "Contextual Escaping disallows interpolations that concatenate multiple expressions " +
           "when a trusted value is required.  See http://docs.angularjs.org/api/ng.\$sce");
     }));
 
 
     it('should interpolate a multi-part expression for regular attributes', inject(() {
-      _.compile('<div foo="some/{{id}}"></div>');
+      _.compile('<div foo="some/«id»"></div>');
       _.rootScope.$digest();
       expect(_.rootElement.attr('foo')).toEqual('some/');
       _.rootScope.$apply(() {
@@ -143,12 +143,12 @@ main() {
 
     xit('should NOT interpolate a wrongly typed expression', inject(($sce) {
       expect(() {
-        _.compile('<div ng-src="{{id}}"></div>');
+        _.compile('<div ng-src="«id»"></div>');
         _.rootScope.$apply(() {
           _.rootScope.id = $sce.trustAsUrl('http://somewhere');
         });
         _.rootElement.attr('src');
-      }).toThrow("Can't interpolate: {{id}}\nError: [\$sce:insecurl] Blocked " +
+      }).toThrow("Can't interpolate: «id»\nError: [\$sce:insecurl] Blocked " +
           "loading resource from url not allowed by \$sceDelegate policy.  URL: http://somewhere");
     }));
 
@@ -160,7 +160,7 @@ main() {
     beforeEach(beforeEachTestBed((tb) => _ = tb));
 
     it('should interpolate the expression and bind to srcset', inject(() {
-      _.compile('<div ng-srcset="some/{{id}} 2x"></div>');
+      _.compile('<div ng-srcset="some/«id» 2x"></div>');
 
       _.rootScope.$digest();
       expect(_.rootElement.attr('srcset')).toEqual('some/ 2x');
@@ -178,7 +178,7 @@ main() {
     beforeEach(beforeEachTestBed((tb) => _ = tb));
 
     it('should interpolate the expression and bind to href', inject(() {
-      _.compile('<div ng-href="some/{{id}}"></div>');
+      _.compile('<div ng-href="some/«id»"></div>');
       _.rootScope.$digest();
       expect(_.rootElement.attr('href')).toEqual('some/');
 
@@ -190,7 +190,7 @@ main() {
 
 
     it('should bind href and merge with other attrs', inject(() {
-      _.compile('<a ng-href="{{url}}" rel="{{rel}}"></a>');
+      _.compile('<a ng-href="«url»" rel="«rel»"></a>');
       _.rootScope.url = 'http://server';
       _.rootScope.rel = 'REL';
       _.rootScope.$digest();

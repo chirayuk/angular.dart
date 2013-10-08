@@ -6,7 +6,7 @@ part of angular.filter;
  *
  * Usage:
  *
- *     {{ json_expression | json }}
+ *     « json_expression | json »
  */
 @NgFilter(name:'json')
 class JsonFilter {

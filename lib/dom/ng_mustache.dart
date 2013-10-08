@@ -6,7 +6,7 @@ import '../parser/parser_library.dart';
 import '../interpolate.dart';
 import '../scope.dart';
 
-@NgDirective(selector: r':contains(/{{.*}}/)')
+@NgDirective(selector: r':contains(/«.*»/)')
 class NgTextMustacheDirective {
   dom.Node element;
   Expression interpolateFn;
@@ -20,7 +20,7 @@ class NgTextMustacheDirective {
 
 }
 
-@NgDirective(selector: r'[*=/{{.*}}/]')
+@NgDirective(selector: r'[*=/«.*»/]')
 class NgAttrMustacheDirective {
   static RegExp ATTR_NAME_VALUE_REGEXP = new RegExp(r'^([^=]+)=(.*)$');
 

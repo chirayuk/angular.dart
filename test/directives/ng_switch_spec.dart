@@ -11,9 +11,9 @@ main() => describe('ngSwitch', () {
   it('should switch on value change', inject(() {
     var element = _.compile(
         '<div ng-switch="select">' +
-        '<div ng-switch-when="1">first:{{name}}</div>' +
-        '<div ng-switch-when="2">second:{{name}}</div>' +
-        '<div ng-switch-when="true">true:{{name}}</div>' +
+        '<div ng-switch-when="1">first:«name»</div>' +
+        '<div ng-switch-when="2">second:«name»</div>' +
+        '<div ng-switch-when="true">true:«name»</div>' +
         '</div>');
     expect(element.html()).toEqual(
         '<!--ANCHOR: [ng-switch-when]=1--><!--ANCHOR: [ng-switch-when]=2--><!--ANCHOR: [ng-switch-when]=true-->');
@@ -38,10 +38,10 @@ main() => describe('ngSwitch', () {
   it('should show all switch-whens that match the current value', inject(() {
     var element = _.compile(
       '<ul ng-switch="select">' +
-        '<li ng-switch-when="1">first:{{name}}</li>' +
-        '<li ng-switch-when="1">, first too:{{name}}</li>' +
-        '<li ng-switch-when="2">second:{{name}}</li>' +
-        '<li ng-switch-when="true">true:{{name}}</li>' +
+        '<li ng-switch-when="1">first:«name»</li>' +
+        '<li ng-switch-when="1">, first too:«name»</li>' +
+        '<li ng-switch-when="2">second:«name»</li>' +
+        '<li ng-switch-when="true">true:«name»</li>' +
       '</ul>');
     expect(element.html()).toEqual('<!--ANCHOR: [ng-switch-when]=1-->'
                                    '<!--ANCHOR: [ng-switch-when]=1-->'
@@ -159,7 +159,7 @@ main() => describe('ngSwitch', () {
   it('should call change on switch', inject(() {
     var element = _.compile(
       '<div ng-switch="url" change="name=\'works\'">' +
-        '<div ng-switch-when="a">{{name}}</div>' +
+        '<div ng-switch-when="a">«name»</div>' +
       '</div ng-switch>');
     _.rootScope.url = 'a';
     _.rootScope.$apply();
@@ -171,7 +171,7 @@ main() => describe('ngSwitch', () {
   it('should properly create and destroy child scopes', inject(() {
     var element = _.compile(
       '<div ng-switch="url">' +
-        '<div ng-switch-when="a" probe="probe">{{name}}</div>' +
+        '<div ng-switch-when="a" probe="probe">«name»</div>' +
       '</div ng-switch>');
     _.rootScope.$apply();
 

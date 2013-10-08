@@ -5,7 +5,7 @@ part of angular.filter;
  *
  * Usage:
  *
- *     {{ uppercase_expression | uppercase }}
+ *     « uppercase_expression | uppercase »
  */
 @NgFilter(name:'uppercase')
 class UppercaseFilter {

@@ -18,7 +18,7 @@ main() {
     }));
 
     it(r'should set create a list of items', inject((Scope scope, Compiler compiler, Injector injector) {
-      var element = $('<div><div ng-repeat="item in items">{{item}}</div></div>');
+      var element = $('<div><div ng-repeat="item in items">«item»</div></div>');
       BlockFactory blockFactory = compiler(element);
       Block block = blockFactory(injector, element);
       scope.items = ['a', 'b'];
@@ -30,7 +30,7 @@ main() {
     it(r'should iterate over an array of objects', () {
       element = $compile(
         '<ul>' +
-          '<li ng-repeat="item in items">{{item.name}};</li>' +
+          '<li ng-repeat="item in items">«item.name»;</li>' +
         '</ul>');
 
       // INIT
@@ -58,7 +58,7 @@ main() {
       element = $compile(
         '<div>' +
           '<ul>' +
-            '<li ng-repeat="item in null">{{item.name}};</li>' +
+            '<li ng-repeat="item in null">«item.name»;</li>' +
           '</ul>' +
         '</div>');
       scope.$digest();
@@ -71,7 +71,7 @@ main() {
       it(r'should track using expression function', () {
         element = $compile(
             '<ul>' +
-                '<li ng-repeat="item in items track by item.id">{{item.name}};</li>' +
+                '<li ng-repeat="item in items track by item.id">«item.name»;</li>' +
             '</ul>');
         scope.items = [{"id": 'misko'}, {"id": 'igor'}];
         scope.$digest();
@@ -88,7 +88,7 @@ main() {
       it(r'should track using build in $id function', () {
         element = $compile(
             '<ul>' +
-                r'<li ng-repeat="item in items track by $id(item)">{{item.name}};</li>' +
+                r'<li ng-repeat="item in items track by $id(item)">«item.name»;</li>' +
             '</ul>');
         scope.items = [{"name": 'misko'}, {"name": 'igor'}];
         scope.$digest();
@@ -105,7 +105,7 @@ main() {
       xit(r'should iterate over an array of primitives', () {
         element = $compile(
             r'<ul>' +
-                r'<li ng-repeat="item in items track by $index">{{item}};</li>' +
+                r'<li ng-repeat="item in items track by $index">«item»;</li>' +
             r'</ul>');
 
         // INIT
@@ -205,7 +205,7 @@ main() {
         () {
       element = $compile(
         '<ul>' +
-          '<li ng-repeat="item in items">{{item}}:{{\$index}}|</li>' +
+          '<li ng-repeat="item in items">«item»:«\$index»|</li>' +
         '</ul>');
       scope.items = ['misko', 'shyam', 'frodo'];
       scope.$digest();
@@ -217,7 +217,7 @@ main() {
         () {
       element = $compile(
         '<ul>' +
-          '<li ng-repeat="item in items">{{item}}:{{\$first}}-{{\$middle}}-{{\$last}}|</li>' +
+          '<li ng-repeat="item in items">«item»:«\$first»-«\$middle»-«\$last»|</li>' +
         '</ul>');
       scope.items = ['misko', 'shyam', 'doug'];
       scope.$digest();
@@ -247,7 +247,7 @@ main() {
       element = $compile(
         '<ul>' +
           '<li ng-repeat="subgroup in groups">' +
-            '<div ng-repeat="group in subgroup">{{group}}|</div>X' +
+            '<div ng-repeat="group in subgroup">«group»|</div>X' +
           '</li>' +
         '</ul>');
       scope.groups = [['a', 'b'], ['c','d']];
@@ -263,7 +263,7 @@ main() {
       beforeEach(() {
         element = $compile(
           '<ul>' +
-            '<li ng-repeat="item in items">{{key}}:{{val}}|></li>' +
+            '<li ng-repeat="item in items">«key»:«val»|></li>' +
           '</ul>');
         a = {};
         b = {};

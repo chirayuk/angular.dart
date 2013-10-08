@@ -40,7 +40,7 @@ part of angular.directive;
  *       <button ng-click="selection='settings'">Show Settings</button>
  *       <button ng-click="selection='home'">Show Home Span</button>
  *       <button ng-click="selection=''">Show default</button>
- *       <tt>selection={{selection}}</tt>
+ *       <tt>selection=«selection»</tt>
  *       <hr/>
  *       <div ng-switch="selection">
  *           <div ng-switch-when="settings">Settings Div</div>

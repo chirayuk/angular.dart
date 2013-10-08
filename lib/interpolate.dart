@@ -4,8 +4,8 @@ import 'parser/parser_library.dart';
 import 'exception_handler.dart';
 
 
-String _startSymbol = '{{';
-String _endSymbol = '}}';
+String _startSymbol = '«';
+String _endSymbol = '»';
 num _startSymbolLength = _startSymbol.length;
 num _endSymbolLength = _endSymbol.length;
 
@@ -15,7 +15,7 @@ num _endSymbolLength = _endSymbol.length;
  *
  *
  *     var $interpolate = ...; // injected
- *     var exp = $interpolate('Hello {{name}}!');
+ *     var exp = $interpolate('Hello «name»!');
  *     expect(exp({name:'Angular'}).toEqual('Hello Angular!');
  */
 class Interpolate {
@@ -27,7 +27,7 @@ class Interpolate {
   /**
    * Compile markup text into interpolation function.
    *
-   * - `text`: The markup text to interpolate in form `foo {{expr}} bar`.
+   * - `text`: The markup text to interpolate in form `foo «expr» bar`.
    * - `mustHaveExpression`: if set to true then the interpolation string must
    *      have embedded expression in order to return an interpolation function.
    *      Strings with no embedded expression will return null for the

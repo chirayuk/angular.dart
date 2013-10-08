@@ -8,7 +8,7 @@ part of angular.filter;
  *
  * Usage:
  *
- *     {{ number_expression | number[:fractionSize] }}
+ *     « number_expression | number[:fractionSize] »
  *
  */
 @NgFilter(name:'number')

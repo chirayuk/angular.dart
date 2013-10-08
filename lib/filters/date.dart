@@ -17,7 +17,7 @@ part of angular.filter;
  *
  * Usage:
  *
- *     {{ date_expression | date[:format] }}
+ *     « date_expression | date[:format] »
  *
  */
 @NgFilter(name:'date')

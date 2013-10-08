@@ -1232,12 +1232,12 @@ main() => describe('http', () {
 
 
           it('should not deserialize tpl beginning with ng expression', async(() {
-            backend.expect('GET', '/url').respond('{{some}}');
+            backend.expect('GET', '/url').respond('«some»');
             http.get('/url').then(callback);
             flush();
 
             expect(callback).toHaveBeenCalledOnce();
-            expect(callback.mostRecentCall.args[0].data).toEqual('{{some}}');
+            expect(callback.mostRecentCall.args[0].data).toEqual('«some»');
           }));
         });
 

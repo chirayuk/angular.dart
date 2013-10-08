@@ -66,7 +66,7 @@ class NgClassDirective extends _NgClassBase {
  *
  *     <li ng-repeat="name in ['John', 'Mary', 'Cate', 'Suz']">
  *       <span ng-class-odd="'odd'" ng-class-even="'even'">
- *         {{name}}
+ *         «name»
  *       </span>
  *     </li>
  *
@@ -100,7 +100,7 @@ class NgClassOddDirective extends _NgClassBase {
  *
  *     <li ng-repeat="name in ['John', 'Mary', 'Cate', 'Suz']">
  *       <span ng-class-odd="'odd'" ng-class-even="'even'">
- *         {{name}}
+ *         «name»
  *       </span>
  *     </li>
  *

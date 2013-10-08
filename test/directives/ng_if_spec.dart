@@ -81,16 +81,16 @@ main() {
       // ng-if
       '<div>' +
       '  <div ng-if="isVisible">'.trim() +
-      '    <span child-controller id="inside">{{setBy}}</span>'.trim() +
+      '    <span child-controller id="inside">«setBy»</span>'.trim() +
       '  </div>'.trim() +
-      '  <span id="outside">{{setBy}}</span>'.trim() +
+      '  <span id="outside">«setBy»</span>'.trim() +
       '</div>',
       // ng-unless
       '<div>' +
       '  <div ng-unless="!isVisible">'.trim() +
-      '    <span child-controller id="inside">{{setBy}}</span>'.trim() +
+      '    <span child-controller id="inside">«setBy»</span>'.trim() +
       '  </div>'.trim() +
-      '  <span id="outside">{{setBy}}</span>'.trim() +
+      '  <span id="outside">«setBy»</span>'.trim() +
       '</div>'],
     (html) {
       rootScope['setBy'] = 'topLevel';
