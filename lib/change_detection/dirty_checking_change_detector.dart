@@ -392,6 +392,8 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
   DirtyCheckingRecord<H> _prevRecord;
   Record<H> _nextChange;
   var _object;
+  var _identityValue;
+  bool _checkForVaryingClosure = false;
   FieldGetter _getter;
 
   DirtyCheckingRecord(this._group, this._fieldGetterFactory, this.handler,
@@ -418,6 +420,7 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
     _object = obj;
     if (obj == null) {
       _mode = _MODE_IDENTITY_;
+      _identityValue = null;
       _getter = null;
       return;
     }
@@ -451,6 +454,7 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
         }
       } else {
         _mode = _MODE_IDENTITY_;
+        _identityValue = obj;
       }
 
       return;
@@ -460,14 +464,9 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
       _mode =  _MODE_MAP_FIELD_;
       _getter = null;
     } else {
-      if (_fieldGetterFactory.isMethod(obj, field)) {
-        _mode = _MODE_IDENTITY_;
-        previousValue = currentValue = _fieldGetterFactory.method(obj, field)(obj);
-        assert(previousValue is Function);
-      } else {
-        _mode = _MODE_GETTER_;
-        _getter = _fieldGetterFactory.getter(obj, field);
-      }
+      _mode = _MODE_GETTER_;
+      _checkForVaryingClosure = true;
+      _getter = _fieldGetterFactory.getter(obj, field);
     }
   }
 
@@ -479,12 +478,24 @@ class DirtyCheckingRecord<H> implements Record<H>, WatchRecord<H> {
         return false;
       case _MODE_GETTER_:
         current = _getter(object);
+        if (_checkForVaryingClosure) {
+          _checkForVaryingClosure = false;
+          // NOTE: Method as handled as _MODE_IDENTITY_.  When Dart looks up a
+          // method "foo" on object "x", it returns a new closure for each lookup.
+          // They compare equal via "==" but are no identical().  There's no point
+          // getting a new value each time and decide it's the same so we'll skip
+          // further checking after the first time.
+          if (current is Function && !identical(current, _getter(object))) {
+            _mode = _MODE_IDENTITY_;
+            _identityValue = current;
+          }
+        }
         break;
       case _MODE_MAP_FIELD_:
         current = object[field];
         break;
       case _MODE_IDENTITY_:
-        current = object;
+        current = _identityValue;
         break;
       case _MODE_MAP_:
         return (currentValue as _MapChangeRecord)._check(object);

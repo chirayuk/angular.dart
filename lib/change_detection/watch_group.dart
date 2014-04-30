@@ -26,8 +26,7 @@ typedef void ChangeLog(String expression, current, previous);
  * number of arguments with which the function will get called with.
  */
 abstract class FunctionApply {
-  // dartbug.com/16401
-  // dynamic call() { throw new StateError('Use apply()'); }
+  dynamic call() { throw new StateError('Use apply()'); }
   dynamic apply(List arguments);
 }
 
@@ -198,7 +197,7 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
    * - [isPure] A pure function is one which holds no internal state. This implies that the
    *   function is idempotent.
    */
-  _EvalWatchRecord addFunctionWatch(/* dartbug.com/16401 Function */ fn, List<AST> argsAST,
+  _EvalWatchRecord addFunctionWatch(Function fn, List<AST> argsAST,
                                     Map<Symbol, AST> namedArgsAST,
                                     String expression, bool isPure) =>
       _addEvalWatch(null, fn, null, argsAST, namedArgsAST, expression, isPure);
@@ -214,11 +213,11 @@ class WatchGroup implements _EvalWatchList, _WatchGroupList {
   _EvalWatchRecord addMethodWatch(AST lhs, String name, List<AST> argsAST,
                                   Map<Symbol, AST> namedArgsAST,
                                   String expression) =>
-      _addEvalWatch(lhs, null, name, argsAST, namedArgsAST, expression, false);
+     _addEvalWatch(lhs, null, name, argsAST, namedArgsAST, expression, false);
 
 
 
-  _EvalWatchRecord _addEvalWatch(AST lhsAST, /* dartbug.com/16401 Function */ fn, String name,
+  _EvalWatchRecord _addEvalWatch(AST lhsAST, Function fn, String name,
                                  List<AST> argsAST,
                                  Map<Symbol, AST> namedArgsAST,
                                  String expression, bool isPure) {
@@ -724,15 +723,13 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
   static const int _MODE_NULL_                = 4;
   static const int _MODE_FIELD_CLOSURE_       = 5;
   static const int _MODE_MAP_CLOSURE_         = 6;
-  static const int _MODE_METHOD_              = 7;
-  static const int _MODE_METHOD_INVOKE_       = 8;
   WatchGroup watchGrp;
   final _Handler handler;
   final List args;
   final Map<Symbol, dynamic> namedArgs =  new Map<Symbol, dynamic>();
   final String name;
   int mode;
-  /* dartbug.com/16401 Function*/ var fn;
+  Function fn;
   FieldGetterFactory _fieldGetterFactory;
   bool dirtyArgs = true;
 
@@ -789,13 +786,8 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
       if (value is Map) {
         mode =  _MODE_MAP_CLOSURE_;
       } else {
-        if (_fieldGetterFactory.isMethod(value, name)) {
-          mode = _fieldGetterFactory.isMethodInvoke ? _MODE_METHOD_INVOKE_ : _MODE_METHOD_;
-          fn = _fieldGetterFactory.method(value, name);
-        } else {
-          mode = _MODE_FIELD_CLOSURE_;
-          fn = _fieldGetterFactory.getter(value, name);
-        }
+        mode = _MODE_FIELD_CLOSURE_;
+        fn = _fieldGetterFactory.getter(value, name);
       }
     }
   }
@@ -822,17 +814,11 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
         break;
       case _MODE_FIELD_CLOSURE_:
         var closure = fn(_object);
-        value = closure == null ? null : Function.apply(closure, args, namedArgs);
+        value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
         break;
       case _MODE_MAP_CLOSURE_:
         var closure = object[name];
-        value = closure == null ? null : Function.apply(closure, args, namedArgs);
-        break;
-      case _MODE_METHOD_:
-        value = Function.apply(fn, args, namedArgs);
-        break;
-      case _MODE_METHOD_INVOKE_:
-        value = fn(args, namedArgs);
+        value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
         break;
       default:
         assert(false);

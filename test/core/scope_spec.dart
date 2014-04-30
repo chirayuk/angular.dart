@@ -1291,7 +1291,13 @@ void main() {
 
       it('should properly watch array of fields 3', (RootScope rootScope, Logger log) {
         rootScope.context['foo'] = 'abc';
-        rootScope.watch('foo.contains("b")', (v, o) => log([v, o]));
+        String expression = 'foo.contains("b")';
+        if (identical(1, 1.0)) { // dart2js
+          // The previous expression does not work in dart2js (dartbug 13523)
+          // Use a working one for now.
+          expression = 'foo.contains("b", 0)';
+        }
+        rootScope.watch(expression, (v, o) => log([v, o]));
         expect(log).toEqual([]);
         rootScope.apply();
         expect(log).toEqual([[true, null]]);
