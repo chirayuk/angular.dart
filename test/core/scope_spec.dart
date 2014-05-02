@@ -6,6 +6,10 @@ import 'package:angular/change_detection/dirty_checking_change_detector.dart';
 import 'dart:async';
 import 'dart:math';
 
+class Foo {
+  bar(x) => x+1;
+}
+
 void main() {
   describe('scope', () {
     beforeEachModule((Module module) {
@@ -1296,6 +1300,15 @@ void main() {
         rootScope.apply();
         expect(log).toEqual([[true, null]]);
         log.clear();
+      });
+
+      it('should watch closures', (RootScope rootScope, Logger log) {
+        rootScope.context['foo'] = new Foo();
+        rootScope.context['func'] = null;
+        rootScope.watch('foo.bar', (v, _) { rootScope.context['func'] = v; });
+        rootScope.watch('func(1)', (v, o) => log([v, o]));
+        rootScope.apply();
+        expect(log).toEqual([[null, null], [2, null]]);
       });
 
 
