@@ -1,5 +1,7 @@
 part of angular.directive;
 
+nopIterator(callback) {}
+
 /**
  * The `ngRepeat` directive instantiates a template once per item from a
  * collection. Each template instance gets its own scope, where the given loop
@@ -83,7 +85,7 @@ class NgRepeat {
   String _valueIdentifier;
   String _keyIdentifier;
   String _listExpr;
-  List<_Row> _rows;
+  List<_Row> _rows = [];
   Function _generateId = (key, value, index) => value;
   Watch _watch;
 
@@ -132,17 +134,51 @@ class NgRepeat {
     _watch = _scope.watch(
         _listExpr,
         (CollectionChangeRecord changes, _) {
-          _onChange((changes is CollectionChangeRecord) ? changes : null);
+          if (changes is CollectionChangeRecord) {
+            if (_rows == null) {
+              _rows = new List<_Row>(length);
+              _onChange(changes.iterable, changes.length, changes.forEachItem, nopIterator, nopIterator);
+            } else {
+              _onChange(changes.iterable, changes.length, changes.forEachAddition, changes.forEachRemoval, changes.forEachMove);
+            }
+          } else {
+            _removeAllRows();
+          }
         },
         collection: true,
         formatters: formatters
     );
   }
 
-  // Computes and executes DOM changes when the item list changes
-  void _onChange(CollectionChangeRecord changes) {
-    final iterable = (changes == null) ? const [] : changes.iterable;
-    final int length = (changes == null) ? 0 : changes.length;
+  _removeAllRows() {
+    if (_rows == null) {
+      return;
+    }
+    _rows.forEach((row) {
+       row.scope.destroy();
+       _viewPort.remove(row.view);
+     });
+    _rows = null;
+  }
+
+  void _addRow(rows, int length, int index, value, View previousView) {
+    var childContext = _updateContext(new PrototypeMap(_scope.context), index,
+        length)..[_valueIdentifier] = value;
+    var childScope = _scope.createChild(childContext);
+    var view = _boundViewFactory(childScope);
+    var nodes = view.nodes;
+    rows[index] = new _Row(_generateId(index, value, index))
+        ..view = view
+        ..scope = childScope
+        ..nodes = nodes
+        ..startNode = nodes.first
+        ..endNode = nodes.last;
+    _viewPort.insert(view, insertAfter: previousView);
+  }
+
+
+  // void _onChange(CollectionChangeRecord changes) {
+  void _onChange(iterable, int length, forEachAddition, forEachRemoval, forEachMove) {
     final rows = new List<_Row>(length);
     final changeFunctions = new List<Function>(length);
     final removedIndexes = <int>[];
@@ -150,72 +186,39 @@ class NgRepeat {
     final leftInDom = new List.generate(domLength, (i) => domLength - 1 - i);
     var domIndex;
 
-    var addRow = (int index, value, View previousView) {
-      var childContext = _updateContext(new PrototypeMap(_scope.context), index,
-          length)..[_valueIdentifier] = value;
-      var childScope = _scope.createChild(childContext);
-      var view = _boundViewFactory(childScope);
-      var nodes = view.nodes;
-      rows[index] = new _Row(_generateId(index, value, index))
-          ..view = view
-          ..scope = childScope
-          ..nodes = nodes
-          ..startNode = nodes.first
-          ..endNode = nodes.last;
-      _viewPort.insert(view, insertAfter: previousView);
-    };
+    forEachRemoval((CollectionChangeItem removal) {
+      var index = removal.previousIndex;
+      var row = _rows[index];
+      row.scope.destroy();
+      _viewPort.remove(row.view);
+      leftInDom.removeAt(domLength - 1 - index);
+    });
 
-    // todo(vicb) refactor once GH-774 gets fixed
-    if (_rows == null) {
-      _rows = new List<_Row>(length);
-      for (var i = 0; i < length; i++) {
-        changeFunctions[i] = (index, previousView) {
-          addRow(index, iterable.elementAt(i), previousView);
-        };
-      }
-    } else {
-      if (changes == null) {
-        _rows.forEach((row) {
-          row.scope.destroy();
-          _viewPort.remove(row.view);
-        });
-        leftInDom.clear();
-      } else {
-        changes.forEachRemoval((CollectionChangeItem removal) {
-          var index = removal.previousIndex;
-          var row = _rows[index];
-          row.scope.destroy();
-          _viewPort.remove(row.view);
-          leftInDom.removeAt(domLength - 1 - index);
-        });
+    forEachAddition((CollectionChangeItem addition) {
+      changeFunctions[addition.currentIndex] = (index, previousView) {
+        _addRow(rows, length, index, addition.item, previousView);
+      };
+    });
 
-        changes.forEachAddition((CollectionChangeItem addition) {
-          changeFunctions[addition.currentIndex] = (index, previousView) {
-            addRow(index, addition.item, previousView);
-          };
-        });
-
-        changes.forEachMove((CollectionChangeItem move) {
-          var previousIndex = move.previousIndex;
-          var value = move.item;
-          changeFunctions[move.currentIndex] = (index, previousView) {
-            var previousRow = _rows[previousIndex];
-            var childScope = previousRow.scope;
-            var childContext = _updateContext(childScope.context, index, length);
-            if (!identical(childScope.context[_valueIdentifier], value)) {
-              childContext[_valueIdentifier] = value;
-            }
-            rows[index] = _rows[previousIndex];
-            // Only move the DOM node when required
-            if (domIndex < 0 || leftInDom[domIndex] != previousIndex) {
-              _viewPort.move(previousRow.view, moveAfter: previousView);
-              leftInDom.remove(previousIndex);
-            }
-            domIndex--;
-          };
-        });
-      }
-    }
+    forEachMove((CollectionChangeItem move) {
+      var previousIndex = move.previousIndex;
+      var value = move.item;
+      changeFunctions[move.currentIndex] = (index, previousView) {
+        var previousRow = _rows[previousIndex];
+        var childScope = previousRow.scope;
+        var childContext = _updateContext(childScope.context, index, length);
+        if (!identical(childScope.context[_valueIdentifier], value)) {
+          childContext[_valueIdentifier] = value;
+        }
+        rows[index] = _rows[previousIndex];
+        // Only move the DOM node when required
+        if (domIndex < 0 || leftInDom[domIndex] != previousIndex) {
+          _viewPort.move(previousRow.view, moveAfter: previousView);
+          leftInDom.remove(previousIndex);
+        }
+        domIndex--;
+      };
+    });
 
     var previousView = null;
     domIndex = leftInDom.length - 1;
