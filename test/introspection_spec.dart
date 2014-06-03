@@ -6,7 +6,7 @@ import 'package:angular/application_factory.dart';
 import 'dart:html';
 
 void main() {
-  describe('introspection', () {
+  ddescribe('introspection', () {
     it('should retrieve ElementProbe', (TestBed _) {
       _.compile('<div ng-bind="true"></div>');
       ElementProbe probe = ngProbe(_.rootElement);
