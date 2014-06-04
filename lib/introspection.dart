@@ -211,13 +211,15 @@ _jsify(var obj) {
     return _jsFunction(obj);
   }
 
-  // ckck: debugging
-  if (obj is List) {
-    return new js.JsArray.from(obj);
-  }
-  // ckck: debugging
-
   if ((obj is Map) || (obj is Iterable)) {
+
+    // ckck: debugging
+    if (obj is List) {
+      var mapped = obj.map(_jsify);
+      return new js.JsArray.from(mapped);
+    }
+    // ckck: debugging
+
     bool wantJsArray = obj is List;
     var mapped = (obj is Map) ? 
         new Map.fromIterables(obj.keys, obj.values.map(_jsify)) : obj.map(_jsify);
