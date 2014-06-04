@@ -210,21 +210,13 @@ _jsify(var obj) {
   if (obj is Function) {
     return _jsFunction(obj);
   }
-
-  // ckck: debugging
-  if (obj is List) {
-    return new js.JsArray.from(obj);
-  }
-  // ckck: debugging
-
   if ((obj is Map) || (obj is Iterable)) {
-    bool wantJsArray = obj is List;
-    var mapped = (obj is Map) ? 
+    var mappedObj = (obj is Map) ? 
         new Map.fromIterables(obj.keys, obj.values.map(_jsify)) : obj.map(_jsify);
-    if (wantJsArray) {
-      return new js.JsArray.from(mapped.toList())..['_dart_'] = obj;
+    if (obj is List) {
+      return new js.JsArray.from(mappedObj);
     } else {
-      return new js.JsObject.jsify(mapped)..['_dart_'] = obj;
+      return new js.JsObject.jsify(mappedObj);
     }
   }
   return obj;
@@ -314,7 +306,7 @@ class _Testability implements _JsObjectProxyable {
   js.JsObject _toJsObject() {
     return _jsify({
        'findBindings': (bindingString, [exactMatch]) =>
-           findBindings(bindingString, exactMatch),
+           new js.JsArray.from(findBindings(bindingString, exactMatch)),
        'notifyWhenNoOutstandingRequests': (callback) =>
          notifyWhenNoOutstandingRequests(() => callback.apply([])),
     })..['_dart_'] = this;
