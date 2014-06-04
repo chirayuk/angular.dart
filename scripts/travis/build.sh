@@ -4,13 +4,13 @@ set -e
 . "$(dirname $0)/../env.sh"
 
 
-echo '-----------------------'
-echo '-- TEST: AngularDart --'
-echo '-----------------------'
-echo BROWSER=$BROWSERS
-node "node_modules/karma/bin/karma" start karma.conf \
-    --reporters=junit,dots --port=8765 --runner-port=8766 \
-    --browsers=$BROWSERS --single-run --no-colors
+# ckck echo '-----------------------'
+# ckck echo '-- TEST: AngularDart --'
+# ckck echo '-----------------------'
+# ckck echo BROWSER=$BROWSERS
+# ckck node "node_modules/karma/bin/karma" start karma.conf \
+# ckck     --reporters=junit,dots --port=8765 --runner-port=8766 \
+# ckck     --browsers=$BROWSERS --single-run --no-colors
 
 
 echo '---------------------------'
