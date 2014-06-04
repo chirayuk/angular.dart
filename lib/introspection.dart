@@ -210,6 +210,13 @@ _jsify(var obj) {
   if (obj is Function) {
     return _jsFunction(obj);
   }
+
+  // ckck: debugging
+  if (obj is List) {
+    return new js.JsArray.from(obj);
+  }
+  // ckck: debugging
+
   if ((obj is Map) || (obj is Iterable)) {
     bool wantJsArray = obj is List;
     var mapped = (obj is Map) ? 
