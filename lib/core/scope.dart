@@ -3,6 +3,12 @@ part of angular.core_internal;
 typedef EvalFunction0();
 typedef EvalFunction1(context);
 
+final Stopwatch _stopwatch = new Stopwatch();
+final Stopwatch _digestPhaseStopWatch = new Stopwatch();
+const String DIGEST_ITERATION_TAG = "DigestIteration";
+final Stopwatch _runAsyncStopWatch = new Stopwatch();
+const String RUN_ASYNC_ITERATION_TAG = "RunAsync";
+
 /**
  * Injected into the listener function within [Scope.on] to provide
  * event-specific details to the scope listener.
@@ -292,6 +298,7 @@ class Scope {
       rootScope.._transitionState(RootScope.STATE_APPLY, null)
                ..digest()
                ..flush();
+      print("${new RootScopeMetrics(_rootScopeCollectors)}\n\n");
     }
   }
 
@@ -564,8 +571,13 @@ class RootScope extends Scope {
   _FunctionChain _domReadHead, _domReadTail;
 
   final ScopeStats _scopeStats;
+  final RootScopeCollectors _rootScopeCollectors;
 
   String _state;
+
+  // Set this tag microtasks/async functions for the metrics collector to blame
+  // a slow async call.
+  String asyncDetail; // ckck
 
   /**
    *
@@ -617,11 +629,13 @@ class RootScope extends Scope {
   String get state => _state;
 
   RootScope(Object context, Parser parser, ASTParser astParser, FieldGetterFactory fieldGetterFactory,
-            FormatterMap formatters, this._exceptionHandler, this._ttl, this._zone,
+            FormatterMap formatters, this._exceptionHandler, ScopeDigestTTL ttl, this._zone,
             ScopeStats _scopeStats)
       : _scopeStats = _scopeStats,
         _parser = parser,
         _astParser = astParser,
+        _ttl = ttl,
+        _rootScopeCollectors = new RootScopeCollectors("ROOT", ttl.ttl),
         super(context, null, null,
             new RootWatchGroup(fieldGetterFactory,
                 new DirtyCheckingChangeDetector(fieldGetterFactory), context),
@@ -657,27 +671,40 @@ class RootScope extends Scope {
   */
   void digest() {
     _transitionState(null, STATE_DIGEST);
+    _stopwatch.start();
     try {
       var rootWatchGroup = _readWriteGroup as RootWatchGroup;
 
       int digestTTL = _ttl.ttl;
+      int phaseNo = 0;
       const int LOG_COUNT = 3;
       List log;
       List digestLog;
       var count;
       ChangeLog changeLog;
       _scopeStats.digestStart();
+      _rootScopeCollectors.resetIterationCollectors();
+      DigestPhaseCollectors iterationCollector;
+      _digestPhaseStopWatch.start();
       do {
+        iterationCollector = _rootScopeCollectors.iterationCollectors[phaseNo];
 
-        int asyncCount = _runAsyncFns();
+        _digestPhaseStopWatch.reset();
+        int asyncCount = _runAsyncFns(iterationCollector.runAsync);
 
         digestTTL--;
+        phaseNo++;
         count = rootWatchGroup.detectChanges(
             exceptionHandler: _exceptionHandler,
             changeLog: changeLog,
             fieldStopwatch: _scopeStats.fieldStopwatch,
             evalStopwatch: _scopeStats.evalStopwatch,
-            processStopwatch: _scopeStats.processStopwatch);
+            processStopwatch: _scopeStats.processStopwatch,
+            metricsCollectors: iterationCollector);
+
+        int elapsedMicros = _digestPhaseStopWatch.elapsedMicroseconds;
+        _rootScopeCollectors.slowestIterations.record(
+            DIGEST_ITERATION_TAG, (() => new DigestPhaseMetrics(iterationCollector)), elapsedMicros);
 
         if (digestTTL <= LOG_COUNT) {
           if (changeLog == null) {
@@ -698,14 +725,20 @@ class RootScope extends Scope {
     } finally {
       _scopeStats.digestEnd();
       _transitionState(STATE_DIGEST, null);
+      _digestPhaseStopWatch.stop();
+      _stopwatch.stop();
+      _rootScopeCollectors.digestMicros = _stopwatch.elapsedMicroseconds;
     }
   }
 
   void flush() {
     _stats.flushStart();
     _transitionState(null, STATE_FLUSH);
+    _stopwatch.start();
     RootWatchGroup readOnlyGroup = this._readOnlyGroup as RootWatchGroup;
     bool runObservers = true;
+    _rootScopeCollectors.resetFlushPhaseCollectors();
+    DigestPhaseCollectors flushCollectors = _rootScopeCollectors.flushCollectors;
     try {
       do {
         if (_domWriteHead != null) _stats.domWriteStart();
@@ -724,7 +757,8 @@ class RootScope extends Scope {
           readOnlyGroup.detectChanges(exceptionHandler:_exceptionHandler,
               fieldStopwatch: _scopeStats.fieldStopwatch,
               evalStopwatch: _scopeStats.evalStopwatch,
-              processStopwatch: _scopeStats.processStopwatch);
+              processStopwatch: _scopeStats.processStopwatch,
+              metricsCollectors: flushCollectors);
         }
         if (_domReadHead != null) _stats.domReadStart();
         while (_domReadHead != null) {
@@ -737,7 +771,7 @@ class RootScope extends Scope {
           if (_domReadHead == null) _stats.domReadEnd();
         }
         _domReadTail = null;
-        _runAsyncFns();
+        _runAsyncFns(flushCollectors.runAsync);
       } while (_domWriteHead != null || _domReadHead != null || _runAsyncHead != null);
       _stats.flushEnd();
       assert((() {
@@ -748,12 +782,14 @@ class RootScope extends Scope {
             changeLog: (s, c, p) => digestLog.add('$s: $c <= $p'),
             fieldStopwatch: _scopeStats.fieldStopwatch,
             evalStopwatch: _scopeStats.evalStopwatch,
-            processStopwatch: _scopeStats.processStopwatch);
+            processStopwatch: _scopeStats.processStopwatch,
+            metricsCollectors: flushCollectors);
         (_readOnlyGroup as RootWatchGroup).detectChanges(
             changeLog: (s, c, p) => flushLog.add('$s: $c <= $p'),
             fieldStopwatch: _scopeStats.fieldStopwatch,
             evalStopwatch: _scopeStats.evalStopwatch,
-            processStopwatch: _scopeStats.processStopwatch);
+            processStopwatch: _scopeStats.processStopwatch,
+            metricsCollectors: flushCollectors);
         if (digestLog.isNotEmpty || flushLog.isNotEmpty) {
           throw 'Observer reaction functions should not change model. \n'
                 'These watch changes were detected: ${digestLog.join('; ')}\n'
@@ -764,16 +800,41 @@ class RootScope extends Scope {
       })());
     } finally {
       _stats.cycleEnd();
+      _rootScopeCollectors.flushMicros = _stopwatch.elapsedMicroseconds;
+      _stopwatch.stop();
       _transitionState(STATE_FLUSH, null);
     }
   }
 
+
+  // debugging flags to capture the async context (stack traces are slow so
+  // beware of enabling them.)
+  static const bool ckck_use_stack_traces = false;
+  static const bool ckck_use_async_detail_message = true;
+  String _ckckFixupMessage(fn(), message) {
+    if (message != null) {
+      return message;
+    }
+    if (ckck_use_async_detail_message && asyncDetail != null) {
+      return asyncDetail;
+    }
+    if (!ckck_use_stack_traces) {
+      return "<unknown>";
+    }
+    try { throw []; } catch (e, s) {
+      return "$s";
+    }
+  }
+
+
   // QUEUES
-  void runAsync(fn()) {
+  void runAsync(fn(), [String message]) {
+    message = _ckckFixupMessage(fn, message); // ckck
+
     if (_state == STATE_FLUSH_ASSERT) {
       throw "Scheduling microtasks not allowed in $state state.";
     }
-    var chain = new _FunctionChain(fn);
+    var chain = new _FunctionChain(fn, message);
     if (_runAsyncHead == null) {
       _runAsyncHead = _runAsyncTail = chain;
     } else {
@@ -781,16 +842,34 @@ class RootScope extends Scope {
     }
   }
 
-  _runAsyncFns() {
+  _runAsyncFns(MetricsCollector metricsCollector) {
     var count = 0;
-    while (_runAsyncHead != null) {
-      try {
-        count++;
-        _runAsyncHead.fn();
-      } catch (e, s) {
-        _exceptionHandler(e, s);
+    if (_rootScopeCollectors.enabled) {
+      _runAsyncStopWatch.start();
+      while (_runAsyncHead != null) {
+        try {
+          count++;
+          _runAsyncStopWatch.reset();
+          _runAsyncHead.fn();
+          int elapsedMicros = _runAsyncStopWatch.elapsedMicroseconds;
+          String message = _runAsyncHead.message;
+          metricsCollector.record(RUN_ASYNC_ITERATION_TAG, _runAsyncHead.message, elapsedMicros);
+        } catch (e, s) {
+          _exceptionHandler(e, s);
+        }
+        _runAsyncHead = _runAsyncHead._next;
       }
-      _runAsyncHead = _runAsyncHead._next;
+      _runAsyncStopWatch.stop();
+    } else {
+      while (_runAsyncHead != null) {
+        try {
+          count++;
+          _runAsyncHead.fn();
+        } catch (e, s) {
+          _exceptionHandler(e, s);
+        }
+        _runAsyncHead = _runAsyncHead._next;
+      }
     }
     _runAsyncTail = null;
     return count;
@@ -1067,9 +1146,10 @@ _NOT_IMPLEMENTED() {
 
 class _FunctionChain {
   final Function fn;
+  final String message;
   _FunctionChain _next;
 
-  _FunctionChain(fn()): fn = fn {
+  _FunctionChain(fn(), [String this.message]): fn = fn {
     assert(fn != null);
   }
 }

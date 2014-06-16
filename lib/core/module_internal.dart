@@ -23,6 +23,7 @@ export 'package:angular/core/formatter.dart';
 import 'package:angular/core/parser/utils.dart';
 import 'package:angular/core/registry.dart';
 import 'package:angular/core/static_keys.dart';
+import 'package:angular/metrics/module.dart';
 
 part "cache.dart";
 part "exception_handler.dart";

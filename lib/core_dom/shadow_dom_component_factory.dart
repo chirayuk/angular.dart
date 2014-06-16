@@ -126,12 +126,16 @@ class BoundShadowDomComponentFactory implements BoundComponentFactory {
 
       async.Future<Iterable<dom.StyleElement>> cssFuture;
       if (baseCss != null) {
+        // ckck: better API.
+        String oldAsyncDetail = shadowScope.rootScope.asyncDetail;
+        shadowScope.rootScope.asyncDetail = "ShadowDomBaseCss(${baseCss.urls})";
         cssFuture = async.Future.wait(
                 [async.Future.wait(baseCss.urls.map(_styleFuture)), _styleElementsFuture])
             .then((twoLists) {
               assert(twoLists.length == 2);
               return []..addAll(twoLists[0])..addAll(twoLists[1]);
             });
+        shadowScope.rootScope.asyncDetail = oldAsyncDetail;
       } else {
         cssFuture = _styleElementsFuture;
       }
