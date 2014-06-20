@@ -375,6 +375,7 @@ class Http {
   UrlRewriter _rewriter;
   HttpBackend _backend;
   HttpInterceptors _interceptors;
+  RootScope _rootScope;
 
   /**
    * The defaults for [Http]
@@ -385,7 +386,7 @@ class Http {
    * Constructor, useful for DI.
    */
   Http(this._cookies, this._location, this._rewriter, this._backend,
-       this.defaults, this._interceptors);
+       this.defaults, this._interceptors, this._rootScope);
 
   /**
    * Parse a [requestUrl] and determine whether this is a same-origin request as
@@ -478,7 +479,10 @@ class Http {
       }
       var cachedResponse = (cache != null && method == 'GET') ? cache.get(url) : null;
       if (cachedResponse != null) {
+        String oldAsyncDetail = _rootScope.asyncDetail;
+        _rootScope.asyncDetail = "CachedHttpResponse('$url')";
         return new async.Future.value(new HttpResponse.copy(cachedResponse));
+        _rootScope.asyncDetail = oldAsyncDetail;
       }
 
       var result = _backend.request(url,
@@ -508,11 +512,15 @@ class Http {
 
     var chain = [[serverRequest, null]];
 
+    // ckck: better API.
+    String oldAsyncDetail = _rootScope.asyncDetail;
+    _rootScope.asyncDetail = "HttpResponse('$url')";
     var future = new async.Future.value(new HttpResponseConfig(
         url: url,
         params: params,
         headers: headers,
         data: data));
+    _rootScope.asyncDetail = oldAsyncDetail;
 
     _interceptors.constructChain(chain);
 

@@ -111,7 +111,7 @@ class NgModel extends NgControl implements AttachAware {
       if (_toBeValidated) {
         validate();
       }
-    });
+    }, "NgModel::validateLater($_expression)");
   }
 
   /**
@@ -164,7 +164,7 @@ class NgModel extends NgControl implements AttachAware {
       _modelValue = boundExpression();
       _originalValue = modelValue;
       _processViewValue(_modelValue);
-    });
+    }, "NgModel::setter($_expression)");
   }
 
   /**
