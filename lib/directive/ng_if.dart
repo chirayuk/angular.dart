@@ -31,7 +31,7 @@ abstract class _NgUnlessIfAttrDirectiveBase {
       var view = _view;
       _scope.rootScope.domWrite(() {
         _viewPort.insert(view);
-     });
+     }, "NgUnlessIf: Insert view into viewport");
     }
   }
 
@@ -40,7 +40,7 @@ abstract class _NgUnlessIfAttrDirectiveBase {
       var view = _view;
       _scope.rootScope.domWrite(() {
         _viewPort.remove(view);
-      });
+      }, "NgUnlessIf: Remove view from viewport");
       _childScope.destroy();
       _view = null;
       _childScope = null;

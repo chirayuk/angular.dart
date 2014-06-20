@@ -163,6 +163,8 @@ class DigestPhaseMetrics {
   final Metrics dirtyOnChangeMetrics;
   final Metrics evalPhaseMetrics;
   final Metrics reactionFnMetrics;
+  final Metrics domReadMetrics;
+  final Metrics domWriteMetrics;
 
   DigestPhaseMetrics(DigestPhaseCollectors digestPhaseCollectors):
       name = digestPhaseCollectors.name,
@@ -170,7 +172,9 @@ class DigestPhaseMetrics {
       dirtyCheckMetrics = new Metrics.copy(digestPhaseCollectors.dirtyCheck.metrics),
       dirtyOnChangeMetrics = new Metrics.copy(digestPhaseCollectors.dirtyOnChange.metrics),
       evalPhaseMetrics = new Metrics.copy(digestPhaseCollectors.evalPhase.metrics),
-      reactionFnMetrics = new Metrics.copy(digestPhaseCollectors.reactionFnPhase.metrics);
+      reactionFnMetrics = new Metrics.copy(digestPhaseCollectors.reactionFnPhase.metrics),
+      domReadMetrics = new Metrics.copy(digestPhaseCollectors.domRead.metrics),
+      domWriteMetrics = new Metrics.copy(digestPhaseCollectors.domWrite.metrics);
 
   _fmtPhaseMetrics(String prefix, Metrics m) {
     if (m.name == null) {
@@ -186,6 +190,8 @@ class DigestPhaseMetrics {
         _fmtPhaseMetrics(prefix, dirtyOnChangeMetrics),
         _fmtPhaseMetrics(prefix, evalPhaseMetrics),
         _fmtPhaseMetrics(prefix, reactionFnMetrics),
+        _fmtPhaseMetrics(prefix, domReadMetrics),
+        _fmtPhaseMetrics(prefix, domWriteMetrics),
         ].where(_isNotNull).join("\n");
   }
 }
@@ -200,6 +206,8 @@ class DigestPhaseCollectors {
   MetricsCollector dirtyOnChange   = new MetricsCollector("DirtyOnChange");
   MetricsCollector evalPhase       = new MetricsCollector("Eval");
   MetricsCollector reactionFnPhase = new MetricsCollector("ReactionFn");
+  MetricsCollector domRead         = new MetricsCollector("DomRead");
+  MetricsCollector domWrite        = new MetricsCollector("DomWrite");
 
   reset() {
     runAsync.reset();

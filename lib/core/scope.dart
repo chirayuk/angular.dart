@@ -3,12 +3,6 @@ part of angular.core_internal;
 typedef EvalFunction0();
 typedef EvalFunction1(context);
 
-final Stopwatch _stopwatch = new Stopwatch();
-final Stopwatch _digestPhaseStopWatch = new Stopwatch();
-const String DIGEST_ITERATION_TAG = "DigestIteration";
-final Stopwatch _runAsyncStopWatch = new Stopwatch();
-const String RUN_ASYNC_ITERATION_TAG = "RunAsync";
-
 /**
  * Injected into the listener function within [Scope.on] to provide
  * event-specific details to the scope listener.
@@ -555,6 +549,15 @@ class ScopeStatsConfig {
  */
 @Injectable()
 class RootScope extends Scope {
+  static final Stopwatch _stopwatch = new Stopwatch();
+  static final Stopwatch _digestPhaseStopWatch = new Stopwatch();
+  static final Stopwatch _runAsyncStopWatch = new Stopwatch();
+  static final Stopwatch _domStopWatch = new Stopwatch();
+  static const String DIGEST_ITERATION_TAG = "DigestIteration";
+  static const String RUN_ASYNC_ITERATION_TAG = "RunAsync";
+  static const String DOM_READ_TAG = "DomRead";
+  static const String DOM_WRITE_TAG = "DomWrite";
+
   static final STATE_APPLY = 'apply';
   static final STATE_DIGEST = 'digest';
   static final STATE_FLUSH = 'flush';
@@ -646,6 +649,10 @@ class RootScope extends Scope {
   {
     _zone.onTurnDone = apply;
     _zone.onError = (e, s, ls) => _exceptionHandler(e, s);
+    _stopwatch.start();
+    _digestPhaseStopWatch.start();
+    _runAsyncStopWatch.start();
+    _domStopWatch.start();
   }
 
   RootScope get rootScope => this;
@@ -670,7 +677,7 @@ class RootScope extends Scope {
   */
   void digest() {
     _transitionState(null, STATE_DIGEST);
-    _stopwatch.start();
+    _stopwatch.reset();
     try {
       var rootWatchGroup = _readWriteGroup as RootWatchGroup;
 
@@ -684,7 +691,6 @@ class RootScope extends Scope {
       _scopeStats.digestStart();
       _rootScopeCollectors.resetIterationCollectors();
       DigestPhaseCollectors iterationCollector;
-      _digestPhaseStopWatch.start();
       do {
         iterationCollector = _rootScopeCollectors.iterationCollectors[phaseNo];
 
@@ -725,7 +731,6 @@ class RootScope extends Scope {
       _scopeStats.digestEnd();
       _transitionState(STATE_DIGEST, null);
       _digestPhaseStopWatch.stop();
-      _stopwatch.stop();
       _rootScopeCollectors.digestMicros = _stopwatch.elapsedMicroseconds;
     }
   }
@@ -733,17 +738,22 @@ class RootScope extends Scope {
   void flush() {
     _stats.flushStart();
     _transitionState(null, STATE_FLUSH);
-    _stopwatch.start();
+    _stopwatch.reset();
     RootWatchGroup readOnlyGroup = this._readOnlyGroup as RootWatchGroup;
     bool runObservers = true;
     _rootScopeCollectors.resetFlushPhaseCollectors();
     DigestPhaseCollectors flushCollectors = _rootScopeCollectors.flushCollectors;
+    DigestPhaseCollectors domReadCollector =  flushCollectors.domRead;
+    DigestPhaseCollectors domWriteCollector = flushCollectors.domWrite;
     try {
       do {
         if (_domWriteHead != null) _stats.domWriteStart();
         while (_domWriteHead != null) {
           try {
+            _domStopWatch.reset();
             _domWriteHead.fn();
+            int elapsedMicros = _domStopWatch.elapsedMicroseconds;
+            domWriteCollector.record(DOM_WRITE_TAG, _domWriteHead.message, elapsedMicros);
           } catch (e, s) {
             _exceptionHandler(e, s);
           }
@@ -762,7 +772,10 @@ class RootScope extends Scope {
         if (_domReadHead != null) _stats.domReadStart();
         while (_domReadHead != null) {
           try {
+            _domStopWatch.reset();
             _domReadHead.fn();
+            int elapsedMicros = _domStopWatch.elapsedMicroseconds;
+            domReadCollector.record(DOM_READ_TAG, _domReadHead.message, elapsedMicros);
           } catch (e, s) {
             _exceptionHandler(e, s);
           }
@@ -797,9 +810,9 @@ class RootScope extends Scope {
         return true;
       })());
     } finally {
+      _domStopWatch.stop();
       _stats.cycleEnd();
       _rootScopeCollectors.flushMicros = _stopwatch.elapsedMicroseconds;
-      _stopwatch.stop();
       _transitionState(STATE_FLUSH, null);
     }
   }
@@ -840,7 +853,6 @@ class RootScope extends Scope {
   _runAsyncFns(MetricsCollector metricsCollector) {
     var count = 0;
     if (_rootScopeCollectors.enabled) {
-      _runAsyncStopWatch.start();
       while (_runAsyncHead != null) {
         try {
           count++;
@@ -870,8 +882,8 @@ class RootScope extends Scope {
     return count;
   }
 
-  void domWrite(fn()) {
-    var chain = new _FunctionChain(fn);
+  void domWrite(fn(), [String message]) {
+    var chain = new _FunctionChain(fn, message);
     if (_domWriteHead == null) {
       _domWriteHead = _domWriteTail = chain;
     } else {
@@ -879,8 +891,8 @@ class RootScope extends Scope {
     }
   }
 
-  void domRead(fn()) {
-    var chain = new _FunctionChain(fn);
+  void domRead(fn(), [String message]) {
+    var chain = new _FunctionChain(fn, message);
     if (_domReadHead == null) {
       _domReadHead = _domReadTail = chain;
     } else {

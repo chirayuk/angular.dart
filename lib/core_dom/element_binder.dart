@@ -193,7 +193,7 @@ class ElementBinder {
                   } else {  // It was set to non-null, but stablized to null, wait.
                     watch = watchToRemove;
                   }
-                });
+                }, "OneWayOneTime('${attrValueAST.expression}')");
             }
           });
           break;

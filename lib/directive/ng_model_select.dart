@@ -60,7 +60,7 @@ class InputSelect implements AttachAware {
       // without DOM changes.
       _scope.rootScope.domRead(() {
         _scope.rootScope.domWrite(() => _mode.onModelChange(value));
-      });
+      }, "InputSelect:render(delayed)");
     };
   }
 
@@ -78,8 +78,8 @@ class InputSelect implements AttachAware {
         _scope.rootScope.domWrite(() {
           _dirty = false;
           _mode.onModelChange(_model.viewValue);
-        });
-      });
+        }, "InputSelect:onModelChange");
+      }, "InputSelect:domRead on dirty");
     }
   }
 }

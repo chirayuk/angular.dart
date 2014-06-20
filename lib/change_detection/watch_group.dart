@@ -431,7 +431,7 @@ class RootWatchGroup extends WatchGroup {
         record.handler.onChange(record);
         int elapsedMicros = _stopwatch.elapsedMicroseconds;
         dirtyOnChangeCollector.record(
-            DIRTY_ON_CHANGE_TAG, current.handler.expression, elapsedMicros);
+            DIRTY_ON_CHANGE_TAG, record.handler.expression, elapsedMicros);
       }
       _stopwatch.stop();
     } else {
