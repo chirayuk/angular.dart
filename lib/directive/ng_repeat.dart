@@ -167,6 +167,7 @@ class NgRepeat {
 
     // todo(vicb) refactor once GH-774 gets fixed
     if (_rows == null) {
+      _scope.rootScope.addSyncDetail("NgRepeat::FirstTimeRender");
       _rows = new List<_Row>(length);
       for (var i = 0; i < length; i++) {
         changeFunctions[i] = (index, previousView) {
@@ -175,12 +176,14 @@ class NgRepeat {
       }
     } else {
       if (changes == null) {
+        _scope.rootScope.addSyncDetail("NgRepeat::DestroyAllItems");
         _rows.forEach((row) {
           row.scope.destroy();
           _viewPort.remove(row.view);
         });
         leftInDom.clear();
       } else {
+        _scope.rootScope.addSyncDetail("NgRepeat::OnChange");
         changes.forEachRemoval((CollectionChangeItem removal) {
           var index = removal.previousIndex;
           var row = _rows[index];

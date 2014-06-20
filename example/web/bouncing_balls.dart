@@ -74,7 +74,7 @@ class BounceController {
     digestTime = currentDigestTime;
     scope.rootScope.domRead(() {
       currentDigestTime = window.performance.now() - start;
-    });
+    }, "window.performance.now");
   }
 
   void tick() {

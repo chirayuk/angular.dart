@@ -2,6 +2,11 @@ library dirty_checking_change_detector;
 
 import 'dart:collection';
 import 'package:angular/change_detection/change_detection.dart';
+import 'package:angular/metrics/module.dart';
+
+const String DIRTY_CHECK_TAG = "DirtyCheck";
+final AvgStopwatch _dirtyCheckStopWatch = new AvgStopwatch();
+
 
 /**
  * [DirtyCheckingChangeDetector] determines which object properties have changed
@@ -297,31 +302,55 @@ class DirtyCheckingChangeDetector<H> extends DirtyCheckingChangeDetectorGroup<H>
         groupRecord = groupRecord._nextRecord;
       }
     }
-    if(record != null) {
+    if (record != null) {
       throw "Extra records at tail: $record on $this";
     }
     return true;
   }
 
   Iterator<Record<H>> collectChanges({EvalExceptionHandler exceptionHandler,
-                                      AvgStopwatch stopwatch}) {
+                                      AvgStopwatch stopwatch,
+                                      MetricsCollector dirtyCheckCollector}) {
     if (stopwatch != null) stopwatch.start();
     DirtyCheckingRecord changeTail = _fakeHead;
     DirtyCheckingRecord current = _recordHead; // current index
 
     int count = 0;
-    while (current != null) {
-      try {
-        if (current.check()) changeTail = changeTail._nextChange = current;
-        count++;
-      } catch (e, s) {
-        if (exceptionHandler == null) {
-          rethrow;
-        } else {
-          exceptionHandler(e, s);
+    if (dirtyCheckCollector.enabled) {
+      _dirtyCheckStopWatch.start();
+      while (current != null) {
+        try {
+          _dirtyCheckStopWatch.reset();
+          bool dirty = current.check();
+          int elapsedMicros = _dirtyCheckStopWatch.elapsedMicroseconds;
+          if (dirty) changeTail = changeTail._nextChange = current;
+          count++;
+          dirtyCheckCollector.record(
+              DIRTY_CHECK_TAG, (current.handler == null) ? null : current.handler.expression, elapsedMicros);
+        } catch (e, s) {
+          if (exceptionHandler == null) {
+            rethrow;
+          } else {
+            exceptionHandler(e, s);
+          }
         }
+        current = current._nextRecord;
       }
-      current = current._nextRecord;
+      _dirtyCheckStopWatch.stop();
+    } else {
+      while (current != null) {
+        try {
+          if (current.check()) changeTail = changeTail._nextChange = current;
+          count++;
+        } catch (e, s) {
+          if (exceptionHandler == null) {
+            rethrow;
+          } else {
+            exceptionHandler(e, s);
+          }
+        }
+        current = current._nextRecord;
+      }
     }
 
     changeTail._nextChange = null;

@@ -375,6 +375,7 @@ class Http {
   UrlRewriter _rewriter;
   HttpBackend _backend;
   HttpInterceptors _interceptors;
+  RootScope _rootScope;
 
   /**
    * The defaults for [Http]
@@ -385,7 +386,7 @@ class Http {
    * Constructor, useful for DI.
    */
   Http(this._cookies, this._location, this._rewriter, this._backend,
-       this.defaults, this._interceptors);
+       this.defaults, this._interceptors, this._rootScope);
 
   /**
    * Parse a [requestUrl] and determine whether this is a same-origin request as
@@ -478,7 +479,12 @@ class Http {
       }
       var cachedResponse = (cache != null && method == 'GET') ? cache.get(url) : null;
       if (cachedResponse != null) {
-        return new async.Future.value(new HttpResponse.copy(cachedResponse));
+        String oldAsyncDetail = _rootScope.addAsyncDetail("CachedResponse('$url')");
+        try {
+          return new async.Future.value(new HttpResponse.copy(cachedResponse));
+        } finally {
+          _rootScope.asyncDetail = oldAsyncDetail;
+        }
       }
 
       var result = _backend.request(url,
@@ -513,6 +519,7 @@ class Http {
         params: params,
         headers: headers,
         data: data);
+    _rootScope.asyncDetail = oldAsyncDetail;
 
     _interceptors.constructChain(chain);
 
@@ -524,18 +531,26 @@ class Http {
       interceptors.constructChain(chain);
     }
 
-    // Try to run interceptors synchronously until one of them returns a Future. This
-    // makes sure that in common cases the HTTP backend sends the HTTP request immediately
-    // saving dozens of millis of RPC latency.
-    var chainResult = chain.fold(initialInput, (prev, chainFns) => prev is async.Future
-        ? prev.then(chainFns[0], onError: chainFns[1])
-        : chainFns[0](prev));
+    try {
+      // ckck: better API.
+      String oldAsyncDetail = _rootScope.asyncDetail;
+      _rootScope.asyncDetail = "HttpResponse('$url')";
 
-    // Depending on the implementation of HttpBackend (e.g. with a local cache) the entire
-    // chain could finish synchronously with a non-Future result.
-    return chainResult is async.Future
-        ? chainResult
-        : new async.Future.value(chainResult);
+      // Try to run interceptors synchronously until one of them returns a Future. This
+      // makes sure that in common cases the HTTP backend sends the HTTP request immediately
+      // saving dozens of millis of RPC latency.
+      var chainResult = chain.fold(initialInput, (prev, chainFns) => prev is async.Future
+          ? prev.then(chainFns[0], onError: chainFns[1])
+          : chainFns[0](prev));
+
+      // Depending on the implementation of HttpBackend (e.g. with a local cache) the entire
+      // chain could finish synchronously with a non-Future result.
+      return chainResult is async.Future
+          ? chainResult
+          : new async.Future.value(chainResult);
+    } finally {
+      _rootScope.asyncDetail = oldAsyncDetail;
+    }
   }
 
   /**

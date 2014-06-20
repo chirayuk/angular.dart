@@ -65,7 +65,7 @@ class NgModel extends NgControl implements AttachAware {
   void _processViewValue(value) {
     validate();
     _viewValue = converter.format(value);
-    _scope.rootScope.domWrite(() => render(_viewValue));
+    _scope.rootScope.domWrite(() => render(_viewValue), "NgModel: render");
   }
 
   void attach() {
@@ -114,7 +114,7 @@ class NgModel extends NgControl implements AttachAware {
       if (_toBeValidated) {
         validate();
       }
-    });
+    }, "NgModel::validateLater($_expression)");
   }
 
   /**
@@ -167,7 +167,7 @@ class NgModel extends NgControl implements AttachAware {
       _modelValue = boundExpression();
       _originalValue = modelValue;
       _processViewValue(_modelValue);
-    });
+    }, "NgModel::setter($_expression)");
   }
 
   /**
@@ -311,7 +311,7 @@ class InputCheckbox {
     ngModel.render = (value) {
       scope.rootScope.domWrite(() {
         inputElement.checked = ngTrueValue.isValue(value);
-      });
+      }, "InputCheckbox:render");
     };
     inputElement
         ..onChange.listen((_) => ngModelOptions.executeChangeFunc(() {
@@ -371,7 +371,7 @@ class InputTextLike {
             value.isNaN && currentValue.isNaN)) {
           typedValue = value;
         }
-      });
+      }, "InputTextLike:render");
     };
 
     inputElement
@@ -445,7 +445,7 @@ class InputNumberLike {
             && (value == null || value is num && !value.isNaN)) {
           typedValue = value;
         }
-      });
+      }, "InputNumberLike:render");
     };
     inputElement
         ..onChange.listen((event) => ngModelOptions.executeChangeFunc(() => processValue()))
@@ -618,7 +618,7 @@ class InputDateLike {
     ngModel.render = (value) {
       scope.rootScope.domWrite(() {
         if (!eqOrNaN(value, typedValue)) typedValue = value;
-      });
+      }, "InputDateLike:render");
     };
     inputElement
         ..onChange.listen((event) => ngModelOptions.executeChangeFunc(() => processValue()))
@@ -797,7 +797,7 @@ class InputRadio {
     ngModel.render = (value) {
       scope.rootScope.domWrite(() {
         radioButtonElement.checked = (value == ngValue.value);
-      });
+      }, "InputRadio:render");
     };
     radioButtonElement
         ..onClick.listen((_) {

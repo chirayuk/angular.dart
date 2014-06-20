@@ -12,9 +12,10 @@ import 'package:angular/core/parser/utils.dart';
 
 class _FunctionChain {
   final Function fn;
+  final String message;
   _FunctionChain _next;
 
-  _FunctionChain(fn()): fn = fn {
+  _FunctionChain(fn(), [String this.message]): fn = fn {
     assert(fn != null);
   }
 }

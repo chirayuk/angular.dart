@@ -16,33 +16,33 @@ class NgElement {
   NgElement(this.node, this._scope, this._animate);
 
   void addClass(String className) {
-    _scheduleDomWrite();
+    _scheduleDomWrite("NgElement:addClass('$className')");
     _classesToUpdate[className] = true;
   }
 
   void removeClass(String className) {
-    _scheduleDomWrite();
+    _scheduleDomWrite("NgElement:removeClass('$className')");
     _classesToUpdate[className] = false;
   }
 
   void setAttribute(String attrName, [value = '']) {
-    _scheduleDomWrite();
+    _scheduleDomWrite("NgElement:setAttribute($attrName=$value)");
     _attributesToUpdate[attrName] = value == null ? '' : value;
   }
 
   void removeAttribute(String attrName) {
-    _scheduleDomWrite();
+    _scheduleDomWrite("NgElement:removeAttribute($attrName)");
     _attributesToUpdate[attrName] = _TO_BE_REMOVED;
   }
 
   /// Schedules a DOM write for the next flush phase
-  _scheduleDomWrite() {
+  _scheduleDomWrite([String message]) {
     if (!_writeScheduled) {
       _writeScheduled = true;
       _scope.rootScope.domWrite(() {
         _writeToDom();
         _writeScheduled = false;
-      });
+      }, message);
     }
   }
 

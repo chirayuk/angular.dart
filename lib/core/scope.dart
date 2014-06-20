@@ -1,5 +1,7 @@
 part of angular.core_internal;
 
+const String DIGEST_TAG = "Digest";
+
 typedef EvalFunction0();
 typedef EvalFunction1(context);
 
@@ -287,6 +289,11 @@ class Scope {
     return null;
   }
 
+  void _printSlowestDigests() {
+    _asyncMetricsPrintTimer = null;
+    //ckck print(_rootScopeAllCollectors);
+  }
+
   dynamic apply([expression, Map locals]) {
     _assertInternalStateConsistency();
     rootScope._transitionState(null, RootScope.STATE_APPLY);
@@ -298,6 +305,23 @@ class Scope {
       rootScope.._transitionState(RootScope.STATE_APPLY, null)
                ..digest()
                ..flush();
+      MetricRecord digestRecord;
+      // _rootScopeAllCollectors.slowestDigests.record(DIGEST_TAG,
+      //     () {
+      //       digestRecord = new RootScopeMetrics(_rootScopeCollectors);
+      //       if (_asyncMetricsPrintTimer == null) {
+      //         _zone.runOutsideAngular(() {
+      //           _asyncMetricsPrintTimer = new async.Timer(RootScope._asyncMetricsPrintDuration, _printSlowestDigests);
+      //         });
+      //       }
+      //       return digestRecord;
+      //     },
+      //     _rootScopeCollectors.flushMicros + _rootScopeCollectors.digestMicros);
+      if (_rootScopeCollectors.ckckPrintOnEveryDigest || digestRecord != null) {
+        if (digestRecord == null) digestRecord = new RootScopeMetrics(_rootScopeCollectors);
+        print("$digestRecord\n\n\n\n");
+      }
+
     }
   }
 
@@ -555,6 +579,15 @@ class ScopeStatsConfig {
  */
 @Injectable()
 class RootScope extends Scope {
+  static final Stopwatch _stopwatch = new Stopwatch();
+  static final Stopwatch _digestPhaseStopWatch = new Stopwatch();
+  static final Stopwatch _runAsyncStopWatch = new Stopwatch();
+  static final Stopwatch _domStopWatch = new Stopwatch();
+  static const String DIGEST_ITERATION_TAG = "DigestIteration";
+  static const String RUN_ASYNC_ITERATION_TAG = "RunAsync";
+  static const String DOM_READ_TAG = "DomRead";
+  static const String DOM_WRITE_TAG = "DomWrite";
+
   static final STATE_APPLY = 'apply';
   static final STATE_DIGEST = 'digest';
   static final STATE_FLUSH = 'flush';
@@ -574,8 +607,29 @@ class RootScope extends Scope {
   _FunctionChain _domReadHead, _domReadTail;
 
   final ScopeStats _scopeStats;
+  final RootScopeCollectors _rootScopeCollectors;
+  final RootScopeAllCollectors _rootScopeAllCollectors;
+  Timer _asyncMetricsPrintTimer;
+  static const Duration _asyncMetricsPrintDuration = const Duration(milliseconds: 100);
 
   String _state;
+
+  // Set this tag microtasks/async functions for the metrics collector to blame
+  // a slow async call.
+  String asyncDetail = null; // ckck
+  String addAsyncDetail(String message) {
+    String oldAsyncDetail = asyncDetail;
+    if (asyncDetail == null) {
+      asyncDetail = message;
+    } else {
+      asyncDetail = "$message from $oldAsyncDetail";
+    }
+    return oldAsyncDetail;
+  }
+
+  // null = not recording.
+  StringMessageAccumulator _syncDetailAccumulator = new StringMessageAccumulator();
+  String addSyncDetail(String message) => _syncDetailAccumulator.addMessage(message);
 
   /**
    *
@@ -627,11 +681,14 @@ class RootScope extends Scope {
   String get state => _state;
 
   RootScope(Object context, Parser parser, ASTParser astParser, FieldGetterFactory fieldGetterFactory,
-            FormatterMap formatters, this._exceptionHandler, this._ttl, this._zone,
+            FormatterMap formatters, this._exceptionHandler, ScopeDigestTTL ttl, this._zone,
             ScopeStats _scopeStats, CacheRegister cacheRegister)
       : _scopeStats = _scopeStats,
         _parser = parser,
         _astParser = astParser,
+        _ttl = ttl,
+        _rootScopeCollectors = new RootScopeCollectors("ROOT", ttl.ttl),
+        _rootScopeAllCollectors = new RootScopeAllCollectors("ALL"),
         super(context, null, null,
             new RootWatchGroup(fieldGetterFactory,
                 new DirtyCheckingChangeDetector(fieldGetterFactory), context),
@@ -643,6 +700,10 @@ class RootScope extends Scope {
     _zone.onTurnDone = apply;
     _zone.onError = (e, s, ls) => _exceptionHandler(e, s);
     cacheRegister.registerCache("ScopeWatchASTs", astCache);
+    _stopwatch.start();
+    _digestPhaseStopWatch.start();
+    _runAsyncStopWatch.start();
+    _domStopWatch.start();
   }
 
   RootScope get rootScope => this;
@@ -667,34 +728,42 @@ class RootScope extends Scope {
   */
   void digest() {
     _transitionState(null, STATE_DIGEST);
+    _stopwatch.reset();
+    _rootScopeCollectors.resetIterationCollectors();
+    assert(_rootScopeCollectors.digestMicros == null);
+    assert(_rootScopeCollectors.flushMicros == null);
     try {
       var rootWatchGroup = _readWriteGroup as RootWatchGroup;
 
       int digestTTL = _ttl.ttl;
+      int phaseNo = 0;
       const int LOG_COUNT = 3;
       List log;
       List digestLog;
       var count;
       ChangeLog changeLog;
       _scopeStats.digestStart();
+      DigestPhaseCollectors iterationCollector;
       do {
-        while (_runAsyncHead != null) {
-          try {
-            _runAsyncHead.fn();
-          } catch (e, s) {
-            _exceptionHandler(e, s);
-          }
-          _runAsyncHead = _runAsyncHead._next;
-        }
-        _runAsyncTail = null;
+        iterationCollector = _rootScopeCollectors.iterationCollectors[phaseNo];
+
+        _digestPhaseStopWatch.reset();
+        int asyncCount = _runAsyncFns(iterationCollector.runAsync);
 
         digestTTL--;
+        phaseNo++;
         count = rootWatchGroup.detectChanges(
             exceptionHandler: _exceptionHandler,
             changeLog: changeLog,
             fieldStopwatch: _scopeStats.fieldStopwatch,
             evalStopwatch: _scopeStats.evalStopwatch,
-            processStopwatch: _scopeStats.processStopwatch);
+            processStopwatch: _scopeStats.processStopwatch,
+            metricsCollectors: iterationCollector,
+            syncMessageAccumulator: _syncDetailAccumulator);
+
+        int elapsedMicros = _digestPhaseStopWatch.elapsedMicroseconds;
+        _rootScopeCollectors.slowestIterations.record(
+            DIGEST_ITERATION_TAG, (() => new DigestPhaseMetrics(iterationCollector)), elapsedMicros);
 
         if (digestTTL <= LOG_COUNT) {
           if (changeLog == null) {
@@ -702,7 +771,7 @@ class RootScope extends Scope {
             digestLog = [];
             changeLog = (e, c, p) => digestLog.add('$e: $c <= $p');
           } else {
-            log.add(digestLog.join(', '));
+            log.add("${asyncCount > 0 ? 'async:$asyncCount' : ''}${digestLog.join(', ')}");
             digestLog.clear();
           }
         }
@@ -715,25 +784,40 @@ class RootScope extends Scope {
     } finally {
       _scopeStats.digestEnd();
       _transitionState(STATE_DIGEST, null);
+      _rootScopeCollectors.digestMicros = _stopwatch.elapsedMicroseconds;
     }
   }
 
   void flush() {
     _stats.flushStart();
     _transitionState(null, STATE_FLUSH);
+    _stopwatch.reset();
     RootWatchGroup readOnlyGroup = this._readOnlyGroup as RootWatchGroup;
     bool runObservers = true;
+    _rootScopeCollectors.resetFlushPhaseCollectors();
+    DigestPhaseCollectors flushCollectors = _rootScopeCollectors.flushCollectors;
+    DigestPhaseCollectors domReadCollector =  flushCollectors.domRead;
+    DigestPhaseCollectors domWriteCollector = flushCollectors.domWrite;
     try {
       do {
         if (_domWriteHead != null) _stats.domWriteStart();
+        int domWriteCount = 0;
         while (_domWriteHead != null) {
           try {
+            domWriteCount++;
+            _syncDetailAccumulator.start();
+            _domStopWatch.reset();
             _domWriteHead.fn();
+            int elapsedMicros = _domStopWatch.elapsedMicroseconds;
+            String detail = (_syncDetailAccumulator.message.isNotEmpty) ? "${_domWriteHead.message}: ${_syncDetailAccumulator.message}" : _domWriteHead.message;
+            domWriteCollector.record(DOM_WRITE_TAG, detail, elapsedMicros);
+            _syncDetailAccumulator.stop();
           } catch (e, s) {
             _exceptionHandler(e, s);
           }
           _domWriteHead = _domWriteHead._next;
           if (_domWriteHead == null) _stats.domWriteEnd();
+          domWriteCollector.count = domWriteCount;
         }
         _domWriteTail = null;
         if (runObservers) {
@@ -741,17 +825,27 @@ class RootScope extends Scope {
           readOnlyGroup.detectChanges(exceptionHandler:_exceptionHandler,
               fieldStopwatch: _scopeStats.fieldStopwatch,
               evalStopwatch: _scopeStats.evalStopwatch,
-              processStopwatch: _scopeStats.processStopwatch);
+              processStopwatch: _scopeStats.processStopwatch,
+              metricsCollectors: flushCollectors,
+              syncMessageAccumulator: _syncDetailAccumulator);
         }
         if (_domReadHead != null) _stats.domReadStart();
+        int domReadCount = 0;
         while (_domReadHead != null) {
           try {
+            domReadCount++;
+            _syncDetailAccumulator.start();
+            _domStopWatch.reset();
             _domReadHead.fn();
+            int elapsedMicros = _domStopWatch.elapsedMicroseconds;
+            String detail = (_syncDetailAccumulator.message.isNotEmpty) ? "${_domReadHead.message}: ${_syncDetailAccumulator.message}" : _domReadHead.message;
+            domReadCollector.record(DOM_READ_TAG, detail, elapsedMicros);
           } catch (e, s) {
             _exceptionHandler(e, s);
           }
           _domReadHead = _domReadHead._next;
           if (_domReadHead == null) _stats.domReadEnd();
+          domReadCollector.count = domReadCount;
         }
         _domReadTail = null;
       } while (_domWriteHead != null || _domReadHead != null);
@@ -764,12 +858,16 @@ class RootScope extends Scope {
             changeLog: (s, c, p) => digestLog.add('$s: $c <= $p'),
             fieldStopwatch: _scopeStats.fieldStopwatch,
             evalStopwatch: _scopeStats.evalStopwatch,
-            processStopwatch: _scopeStats.processStopwatch);
+            processStopwatch: _scopeStats.processStopwatch,
+            metricsCollectors: flushCollectors,
+            syncMessageAccumulator: _syncDetailAccumulator);
         (_readOnlyGroup as RootWatchGroup).detectChanges(
             changeLog: (s, c, p) => flushLog.add('$s: $c <= $p'),
             fieldStopwatch: _scopeStats.fieldStopwatch,
             evalStopwatch: _scopeStats.evalStopwatch,
-            processStopwatch: _scopeStats.processStopwatch);
+            processStopwatch: _scopeStats.processStopwatch,
+            metricsCollectors: flushCollectors,
+            syncMessageAccumulator: _syncDetailAccumulator);
         if (digestLog.isNotEmpty || flushLog.isNotEmpty) {
           throw 'Observer reaction functions should not change model. \n'
                 'These watch changes were detected: ${digestLog.join('; ')}\n'
@@ -779,14 +877,36 @@ class RootScope extends Scope {
         return true;
       })());
     } finally {
+      _rootScopeCollectors.flushMicros = _stopwatch.elapsedMicroseconds;
       _stats.cycleEnd();
       _transitionState(STATE_FLUSH, null);
     }
   }
 
+
+  // debugging flags to capture the async context (stack traces are slow so
+  // beware of enabling them.)
+  static const bool ckck_use_stack_traces = false;
+  String _ckckFixupMessage(fn(), message) {
+    if (message != null) {
+      return message;
+    }
+    if (ckck_use_stack_traces) {
+      try { throw []; } catch (e, s) {
+        message = "$s";
+      }
+    } else {
+      message = "<unknown>";
+    }
+    return (asyncDetail == null) ? message : "$message from $asyncDetail";
+  }
+
+
   // QUEUES
-  void runAsync(fn()) {
-    var chain = new _FunctionChain(fn);
+  void runAsync(fn(), [String message]) {
+    message = _ckckFixupMessage(fn, message); // ckck
+
+    var chain = new _FunctionChain(fn, message);
     if (_runAsyncHead == null) {
       _runAsyncHead = _runAsyncTail = chain;
     } else {
@@ -794,8 +914,52 @@ class RootScope extends Scope {
     }
   }
 
-  void domWrite(fn()) {
-    var chain = new _FunctionChain(fn);
+  _runAsyncFns(MetricsCollector metricsCollector) {
+    String oldAsyncDetail = asyncDetail;
+    try {
+      var count = 0;
+      if (_rootScopeCollectors.enabled) {
+        while (_runAsyncHead != null) {
+          try {
+            count++;
+            String message = _runAsyncHead.message;
+            addAsyncDetail(message);
+            _syncDetailAccumulator.start();
+            _runAsyncStopWatch.reset();
+            _runAsyncHead.fn();
+            int elapsedMicros = _runAsyncStopWatch.elapsedMicroseconds;
+            asyncDetail = oldAsyncDetail;
+            String detail = (_syncDetailAccumulator.message.isNotEmpty) ? "$message: ${_syncDetailAccumulator.message}" : message;
+            metricsCollector.record(RUN_ASYNC_ITERATION_TAG, detail, elapsedMicros);
+            _syncDetailAccumulator.stop();
+          } catch (e, s) {
+            _exceptionHandler(e, s);
+          }
+          _runAsyncHead = _runAsyncHead._next;
+        }
+        metricsCollector.count = count;
+      } else {
+        while (_runAsyncHead != null) {
+          try {
+            count++;
+            _runAsyncHead.fn();
+          } catch (e, s) {
+            _exceptionHandler(e, s);
+          }
+          _runAsyncHead = _runAsyncHead._next;
+        }
+      }
+      _runAsyncTail = null;
+      return count;
+    }
+    finally {
+      asyncDetail = oldAsyncDetail;
+    }
+  }
+
+  void domWrite(fn(), [String message]) {
+    message = _ckckFixupMessage(fn, message); // ckck
+    var chain = new _FunctionChain(fn, message);
     if (_domWriteHead == null) {
       _domWriteHead = _domWriteTail = chain;
     } else {
@@ -803,8 +967,9 @@ class RootScope extends Scope {
     }
   }
 
-  void domRead(fn()) {
-    var chain = new _FunctionChain(fn);
+  void domRead(fn(), [String message]) {
+    message = _ckckFixupMessage(fn, message); // ckck
+    var chain = new _FunctionChain(fn, message);
     if (_domReadHead == null) {
       _domReadHead = _domReadTail = chain;
     } else {
@@ -1065,9 +1230,10 @@ _NOT_IMPLEMENTED() {
 
 class _FunctionChain {
   final Function fn;
+  final String message;
   _FunctionChain _next;
 
-  _FunctionChain(fn()): fn = fn {
+  _FunctionChain(fn(), [String this.message]): fn = fn {
     assert(fn != null);
   }
 }

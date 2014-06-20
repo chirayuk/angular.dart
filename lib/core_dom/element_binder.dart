@@ -1,5 +1,14 @@
 part of angular.core.dom_internal;
 
+// ckck
+_valueToDetailString(var value) {
+  String result = value.toString();
+  if (result.length > 60) {
+    result = result.substring(0, 57) + "…";
+  }
+  return result.replaceAll("\n", "↵");
+}
+
 class TemplateElementBinder extends ElementBinder {
   final DirectiveRef template;
   ViewFactory templateViewFactory;
@@ -98,6 +107,7 @@ class ElementBinder {
       if (!viewInbound) {
         viewOutbound = true;
         scope.rootScope.runAsync(() => viewOutbound = false);
+        scope.rootScope.addSyncDetail("TwoWayBinding::Assign($ast → $dstAST := ${_valueToDetailString(inboundValue)})");
         var value = dstAST.parsedExp.assign(controller, inboundValue);
         if (tasks != null) tasks.completeTask(taskId);
         return value;
@@ -108,6 +118,7 @@ class ElementBinder {
         if (!viewOutbound) {
           viewInbound = true;
           scope.rootScope.runAsync(() => viewInbound = false);
+          scope.rootScope.addSyncDetail("TwoWayBinding::Assign($ast ← $dstAST := ${_valueToDetailString(outboundValue)})");
           ast.parsedExp.assign(scope.context, outboundValue);
           if (tasks != null) tasks.completeTask(taskId);
         }
@@ -119,6 +130,7 @@ class ElementBinder {
     var taskId = (tasks != null) ? tasks.registerTask() : 0;
 
     scope.watchAST(ast, (v, _) {
+      scope.rootScope.addSyncDetail("BindOneWay::Assign($ast → $dstAST := ${_valueToDetailString(v)})");
       dstAST.parsedExp.assign(controller, v);
       if (tasks != null) tasks.completeTask(taskId);
     });
@@ -189,6 +201,7 @@ class ElementBinder {
           var lastOneTimeValue;
           watch = scope.watchAST(attrValueAST, (value, _) {
             if ((lastOneTimeValue = dstAST.parsedExp.assign(directive, value)) != null && watch != null) {
+                scope.rootScope.addSyncDetail("OneWayOneTime::Assign($dstAST ← $attrValueAST: newValue=${_valueToDetailString(value)})");
                 var watchToRemove = watch;
                 watch = null;
                 scope.rootScope.domWrite(() {
@@ -197,7 +210,7 @@ class ElementBinder {
                   } else {  // It was set to non-null, but stablized to null, wait.
                     watch = watchToRemove;
                   }
-                });
+                }, "OneWayOneTime('${attrValueAST.expression}')");
             }
           });
           break;

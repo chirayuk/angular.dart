@@ -104,6 +104,7 @@ class AngularModule extends Module {
     install(new JsCacheModule());
     install(new PerfModule());
     install(new RoutingModule());
+    install(new MetricsModule());
 
     bind(MetadataExtractor);
     bind(Expando, toValue: elementExpando);

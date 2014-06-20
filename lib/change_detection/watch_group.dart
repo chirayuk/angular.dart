@@ -2,10 +2,18 @@ library angular.watch_group;
 
 import 'package:angular/change_detection/change_detection.dart';
 import 'dart:collection';
+import 'package:angular/metrics/module.dart';
 
 part 'linked_list.dart';
 part 'ast.dart';
 part 'prototype_map.dart';
+
+const String DIRTY_ON_CHANGE_TAG = "DirtyOnChange";
+const String EVAL_CHECK_TAG = "EvalCheck";
+const String EVAL_ON_CHANGE_TAG = "EvalOnChange";
+const String REACTION_FN_TAG = "ReactionFn";
+final Stopwatch _stopwatch = new Stopwatch();
+final Stopwatch _evalOnChangeStopwatch = new Stopwatch();
 
 /**
  * A function that is notified of changes to the model.
@@ -396,6 +404,19 @@ class RootWatchGroup extends WatchGroup {
 
   RootWatchGroup get _rootGroup => this;
 
+  static _watchRecordToDetail(WatchRecord rec, [StringMessageAccumulator msgAccumulator]) {
+    // String result = rec.toString();
+    String result = (rec.handler == null) ? rec.toString() : rec.handler.expression;
+    result = result.replaceAll("\n", "↵");
+    if (msgAccumulator != null) {
+      String msg = msgAccumulator.message;
+      if (msg != null && msg.isNotEmpty) {
+        result = "$result: $msg";
+      }
+    }
+    return result;
+  }
+
   /**
    * Detect changes and process the [ReactionFn]s.
    *
@@ -411,19 +432,41 @@ class RootWatchGroup extends WatchGroup {
                       ChangeLog changeLog,
                       AvgStopwatch fieldStopwatch,
                       AvgStopwatch evalStopwatch,
-                      AvgStopwatch processStopwatch}) {
+                      AvgStopwatch processStopwatch,
+                      DigestPhaseCollectors metricsCollectors,
+                      StringMessageAccumulator syncMessageAccumulator }) {
     // Process the Records from the change detector
     Iterator<Record<_Handler>> changedRecordIterator =
         (_changeDetector as ChangeDetector<_Handler>).collectChanges(
             exceptionHandler:exceptionHandler,
-            stopwatch: fieldStopwatch);
+            stopwatch: fieldStopwatch,
+            dirtyCheckCollector: metricsCollectors.dirtyCheck);
     if (processStopwatch != null) processStopwatch.start();
-    while (changedRecordIterator.moveNext()) {
-      var record = changedRecordIterator.current;
-      if (changeLog != null) changeLog(record.handler.expression,
-                                       record.currentValue,
-                                       record.previousValue);
-      record.handler.onChange(record);
+    MetricsCollector dirtyOnChangeCollector = metricsCollectors.dirtyOnChange;
+    _stopwatch.start();
+    if (dirtyOnChangeCollector.enabled) {
+      int dirtyCheckCount = 0;
+      while (changedRecordIterator.moveNext()) {
+        var record = changedRecordIterator.current;
+        if (changeLog != null) changeLog(record.handler.expression,
+                                         record.currentValue,
+                                         record.previousValue);
+        dirtyCheckCount++;
+        _stopwatch.reset();
+        record.handler.onChange(record);
+        int elapsedMicros = _stopwatch.elapsedMicroseconds;
+        dirtyOnChangeCollector.record(
+            DIRTY_ON_CHANGE_TAG, record.handler.expression, elapsedMicros);
+      }
+      dirtyOnChangeCollector.count = dirtyCheckCount;
+    } else {
+      while (changedRecordIterator.moveNext()) {
+        var record = changedRecordIterator.current;
+        if (changeLog != null) changeLog(record.handler.expression,
+                                         record.currentValue,
+                                         record.previousValue);
+        record.handler.onChange(record);
+      }
     }
     if (processStopwatch != null) processStopwatch.stop();
 
@@ -431,18 +474,50 @@ class RootWatchGroup extends WatchGroup {
     // Process our own function evaluations
     _EvalWatchRecord evalRecord = _evalWatchHead;
     int evalCount = 0;
-    while (evalRecord != null) {
-      try {
-        if (evalStopwatch != null) evalCount++;
-        if (evalRecord.check() && changeLog != null) {
-          changeLog(evalRecord.handler.expression,
-                    evalRecord.currentValue,
-                    evalRecord.previousValue);
+    MetricsCollector evalCheckCollector = metricsCollectors.evalCheck;
+    MetricsCollector evalOnChangeCollector = metricsCollectors.evalOnChange;
+    if (evalCheckCollector.enabled) {
+      _evalOnChangeStopwatch.start();
+      int evalOnChangeCount = 0;
+      while (evalRecord != null) {
+        try {
+          evalCount++;
+          _evalOnChangeStopwatch.stop(); _evalOnChangeStopwatch.reset();
+          _stopwatch.stop(); _stopwatch.reset();
+          bool dirty = evalRecord.checkWithStopWatch(_stopwatch, _evalOnChangeStopwatch);
+          String toDetail = () => _watchRecordToDetail(evalRecord);
+          evalCheckCollector.record(EVAL_CHECK_TAG, toDetail, _stopwatch.elapsedMicroseconds);
+          int evalOnChangeMicros = _evalOnChangeStopwatch.elapsedMicroseconds;
+          if (evalOnChangeMicros > 0) {
+            evalOnChangeCount++;
+            evalOnChangeCollector.record(EVAL_ON_CHANGE_TAG, toDetail, evalOnChangeMicros);
+          }
+          if (dirty && changeLog != null) {
+            changeLog(evalRecord.handler.expression,
+                      evalRecord.currentValue,
+                      evalRecord.previousValue);
+          }
+        } catch (e, s) {
+          if (exceptionHandler == null) rethrow; else exceptionHandler(e, s);
         }
-      } catch (e, s) {
-        if (exceptionHandler == null) rethrow; else exceptionHandler(e, s);
+        evalRecord = evalRecord._nextEvalWatch;
       }
-      evalRecord = evalRecord._nextEvalWatch;
+      evalCheckCollector.count = evalCount;
+      evalOnChangeCollector.count = evalOnChangeCount;
+    } else {
+      while (evalRecord != null) {
+        try {
+          if (evalStopwatch != null) evalCount++;
+          if (evalRecord.check() && changeLog != null) {
+            changeLog(evalRecord.handler.expression,
+                      evalRecord.currentValue,
+                      evalRecord.previousValue);
+          }
+        } catch (e, s) {
+          if (exceptionHandler == null) rethrow; else exceptionHandler(e, s);
+        }
+        evalRecord = evalRecord._nextEvalWatch;
+      }
     }
     if (evalStopwatch != null) evalStopwatch..stop()..increment(evalCount);
 
@@ -455,11 +530,22 @@ class RootWatchGroup extends WatchGroup {
     _dirtyWatchHead = null;
     RootWatchGroup root = _rootGroup;
     try {
+      MetricsCollector reactionFnCollector = metricsCollectors.reactionFnPhase;
+      bool metricCollectionEnabled = reactionFnCollector.enabled;
+      _stopwatch.start();
       while (dirtyWatch != null) {
         count++;
         try {
           if (root._removeCount == 0 || dirtyWatch._watchGroup.isAttached) {
+            syncMessageAccumulator.start();
+            _stopwatch.reset();
             dirtyWatch.invoke();
+            int elapsedMicros = _stopwatch.elapsedMicroseconds;
+            if (metricCollectionEnabled) {
+              reactionFnCollector.record(
+                  REACTION_FN_TAG, () => _watchRecordToDetail(dirtyWatch._record, syncMessageAccumulator), elapsedMicros);
+            }
+            syncMessageAccumulator.stop();
           }
         } catch (e, s) {
           if (exceptionHandler == null) rethrow; else exceptionHandler(e, s);
@@ -468,6 +554,7 @@ class RootWatchGroup extends WatchGroup {
         dirtyWatch._nextDirtyWatch = null;
         dirtyWatch = nextDirtyWatch;
       }
+      reactionFnCollector.count = count;
     } finally {
       _dirtyWatchTail = null;
       root._removeCount = 0;
@@ -506,6 +593,7 @@ class Watch {
   final Record<_Handler> _record;
   final ReactionFn reactionFn;
   final WatchGroup _watchGroup;
+  String reactionDetail;
 
   bool _dirty = false;
   bool _deleted = false;
@@ -816,7 +904,9 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
     }
   }
 
-  bool check() {
+  bool check() => checkWithStopWatch();
+
+  bool checkWithStopWatch([StopWatch onCheckStopwatch, StopWatch onChangeStopwatch]) {
     var value;
     switch (mode) {
       case _MODE_MARKER_:
@@ -824,16 +914,22 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
         return false;
       case _MODE_PURE_FUNCTION_:
         if (!dirtyArgs) return false;
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = Function.apply(fn, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         dirtyArgs = false;
         break;
       case _MODE_FUNCTION_:
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = Function.apply(fn, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         dirtyArgs = false;
         break;
       case _MODE_PURE_FUNCTION_APPLY_:
         if (!dirtyArgs) return false;
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (fn as FunctionApply).apply(args);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         dirtyArgs = false;
         break;
       case _MODE_FIELD_OR_METHOD_CLOSURE_:
@@ -849,18 +945,26 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
         } else {
           mode = _MODE_FIELD_CLOSURE_;
         }
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       case _MODE_METHOD_:
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = Function.apply(fn, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       case _MODE_FIELD_CLOSURE_:
         var closure = fn(_object);
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       case _MODE_MAP_CLOSURE_:
         var closure = object[name];
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       default:
         assert(false);
@@ -874,7 +978,9 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
       } else {
         previousValue = current;
         currentValue = value;
+        if (onChangeStopwatch != null) onChangeStopwatch.start();
         handler.onChange(this);
+        if (onChangeStopwatch != null) onChangeStopwatch.stop();
         return true;
       }
     }
@@ -892,6 +998,6 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
 
   String toString() {
     if (mode == _MODE_MARKER_) return 'MARKER[$currentValue]';
-    return '${watchGrp.id}:${handler.expression}';
+    return '${watchGrp.id}:mode=$mode:${handler.expression}';
   }
 }

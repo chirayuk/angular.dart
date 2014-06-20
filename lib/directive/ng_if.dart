@@ -26,21 +26,23 @@ abstract class _NgUnlessIfAttrDirectiveBase {
 
   void _ensureViewExists() {
     if (_view == null) {
+      _scope.rootScope.addSyncDetail("NgIf::CreateView");
       _childScope = _scope.createChild(new PrototypeMap(_scope.context));
       _view = _boundViewFactory(_childScope);
       var view = _view;
       _scope.rootScope.domWrite(() {
         _viewPort.insert(view);
-     });
+     }, "NgUnlessIf: Insert view into viewport");
     }
   }
 
   void _ensureViewDestroyed() {
     if (_view != null) {
+      _scope.rootScope.addSyncDetail("NgIf::DestroyView");
       var view = _view;
       _scope.rootScope.domWrite(() {
         _viewPort.remove(view);
-      });
+      }, "NgUnlessIf: Remove view from viewport");
       _childScope.destroy();
       _view = null;
       _childScope = null;
