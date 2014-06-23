@@ -193,7 +193,8 @@ class DigestPhaseMetrics {
   final Metrics runAsyncMetrics;
   final Metrics dirtyCheckMetrics;
   final Metrics dirtyOnChangeMetrics;
-  final Metrics evalPhaseMetrics;
+  final Metrics evalCheckMetrics;
+  final Metrics evalOnChangeMetrics;
   final Metrics reactionFnMetrics;
   final Metrics domReadMetrics;
   final Metrics domWriteMetrics;
@@ -203,7 +204,8 @@ class DigestPhaseMetrics {
       runAsyncMetrics = new Metrics.copy(digestPhaseCollectors.runAsync.metrics),
       dirtyCheckMetrics = new Metrics.copy(digestPhaseCollectors.dirtyCheck.metrics),
       dirtyOnChangeMetrics = new Metrics.copy(digestPhaseCollectors.dirtyOnChange.metrics),
-      evalPhaseMetrics = new Metrics.copy(digestPhaseCollectors.evalPhase.metrics),
+      evalCheckMetrics = new Metrics.copy(digestPhaseCollectors.evalCheck.metrics),
+      evalOnChangeMetrics = new Metrics.copy(digestPhaseCollectors.evalOnChange.metrics),
       reactionFnMetrics = new Metrics.copy(digestPhaseCollectors.reactionFnPhase.metrics),
       domReadMetrics = new Metrics.copy(digestPhaseCollectors.domRead.metrics),
       domWriteMetrics = new Metrics.copy(digestPhaseCollectors.domWrite.metrics);
@@ -220,7 +222,8 @@ class DigestPhaseMetrics {
         _fmtPhaseMetrics(prefix, runAsyncMetrics),
         _fmtPhaseMetrics(prefix, dirtyCheckMetrics),
         _fmtPhaseMetrics(prefix, dirtyOnChangeMetrics),
-        _fmtPhaseMetrics(prefix, evalPhaseMetrics),
+        _fmtPhaseMetrics(prefix, evalCheckMetrics),
+        _fmtPhaseMetrics(prefix, evalOnChangeMetrics),
         _fmtPhaseMetrics(prefix, reactionFnMetrics),
         _fmtPhaseMetrics(prefix, domReadMetrics),
         _fmtPhaseMetrics(prefix, domWriteMetrics),
@@ -236,7 +239,8 @@ class DigestPhaseCollectors {
   MetricsCollector runAsync        = new MetricsCollector("RunAsync");
   MetricsCollector dirtyCheck      = new MetricsCollector("DirtyCheck");
   MetricsCollector dirtyOnChange   = new MetricsCollector("DirtyOnChange");
-  MetricsCollector evalPhase       = new MetricsCollector("Eval");
+  MetricsCollector evalCheck       = new MetricsCollector("EvalCheck");
+  MetricsCollector evalOnChange    = new MetricsCollector("EvalOnChange");
   MetricsCollector reactionFnPhase = new MetricsCollector("ReactionFn");
   MetricsCollector domRead         = new MetricsCollector("DomRead");
   MetricsCollector domWrite        = new MetricsCollector("DomWrite");
@@ -245,11 +249,12 @@ class DigestPhaseCollectors {
     runAsync.reset();
     dirtyCheck.reset();
     dirtyOnChange.reset();
-    evalPhase.reset();
+    evalCheck.reset();
+    evalOnChange.reset();
     reactionFnPhase.reset();
   }
 
-  toString() => "$runtimeType[$name]:\n\t$runAsync\n\t$dirtyCheck\n\t$dirtyOnChange\n\t$evalPhase\n\t$reactionFnPhase";
+  toString() => "$runtimeType[$name]:\n\t$runAsync\n\t$dirtyCheck\n\t$dirtyOnChange\n\t$evalCheck\n\t$evalOnChange\n\t$reactionFnPhase";
 }
 
 

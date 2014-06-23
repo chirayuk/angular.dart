@@ -8,9 +8,11 @@ part 'ast.dart';
 part 'prototype_map.dart';
 
 const String DIRTY_ON_CHANGE_TAG = "DirtyOnChange";
-const String EVAL_CHECK_TAG = "Eval";
+const String EVAL_CHECK_TAG = "EvalCheck";
+const String EVAL_ON_CHANGE_TAG = "EvalOnChange";
 const String REACTION_FN_TAG = "ReactionFn";
-final AvgStopwatch _stopwatch = new AvgStopwatch();
+final Stopwatch _stopwatch = new Stopwatch();
+final Stopwatch _evalOnChangeStopwatch = new Stopwatch();
 
 /**
  * A function that is notified of changes to the model.
@@ -391,7 +393,8 @@ class RootWatchGroup extends WatchGroup {
   RootWatchGroup get _rootGroup => this;
 
   static _watchRecordToDetail(WatchRecord rec) {
-    String result = (rec.handler == null) ? rec.toString() : rec.handler.expression;
+    String result = rec.toString();
+    // String result = (rec.handler == null) ? rec.toString() : rec.handler.expression;
     return result.replaceAll("\n", "↵");
   }
 
@@ -449,17 +452,25 @@ class RootWatchGroup extends WatchGroup {
     // Process our own function evaluations
     _EvalWatchRecord evalRecord = _evalWatchHead;
     int evalCount = 0;
-    MetricsCollector evalCheckCollector = metricsCollectors.evalPhase;
+    MetricsCollector evalCheckCollector = metricsCollectors.evalCheck;
+    MetricsCollector evalOnChangeCollector = metricsCollectors.evalOnChange;
     if (evalCheckCollector.enabled) {
       _stopwatch.start();
+      _evalOnChangeStopwatch.start();
       while (evalRecord != null) {
         try {
           if (evalStopwatch != null) evalCount++;
+          _evalOnChangeStopwatch.stop();
+          _evalOnChangeStopwatch.reset();
           _stopwatch.reset();
-          bool dirty = evalRecord.check();
+          bool dirty = evalRecord.checkWithStopWatch(_evalOnChangeStopwatch);
           int elapsedMicros = _stopwatch.elapsedMicroseconds;
+          int onChangeMicros = _evalOnChangeStopwatch.elapsedMicroseconds;
+          elapsedMicros -= onChangeMicros;
           evalCheckCollector.record(
               EVAL_CHECK_TAG, () => _watchRecordToDetail(evalRecord), elapsedMicros);
+          evalOnChangeCollector.record(
+              EVAL_ON_CHANGE_TAG, () => _watchRecordToDetail(evalRecord), onChangeMicros);
           if (dirty && changeLog != null) {
             changeLog(evalRecord.handler.expression,
                       evalRecord.currentValue,
@@ -858,7 +869,9 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
     }
   }
 
-  bool check() {
+  bool check() => checkWithStopWatch();
+
+  bool checkWithStopWatch([StopWatch onChangeStopwatch]) {
     var value;
     switch (mode) {
       case _MODE_MARKER_:
@@ -916,7 +929,9 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
       } else {
         previousValue = current;
         currentValue = value;
+        if (onChangeStopwatch != null) onChangeStopwatch.start();
         handler.onChange(this);
+        if (onChangeStopwatch != null) onChangeStopwatch.stop();
         return true;
       }
     }
@@ -934,6 +949,6 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
 
   String toString() {
     if (mode == _MODE_MARKER_) return 'MARKER[$currentValue]';
-    return '${watchGrp.id}:${handler.expression}';
+    return '${watchGrp.id}:mode=$mode:${handler.expression}';
   }
 }
