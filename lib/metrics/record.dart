@@ -3,6 +3,9 @@ part of angular.metrics;
 const int MICROS_WIDTH = 10;
 const int TAG_WIDTH = 10;
 const String INDENT = "              ";
+const int NUM_TO_REPORT_IN_LIST = 10;
+const int NUM_SLOWEST_TO_REPORT = 8;
+const int NUM_SLOWEST_NESTED_TO_REPORT = 8;
 NumberFormat _numFmt = new NumberFormat();
 
 _isNotNull(o) => (o != null);
@@ -14,21 +17,43 @@ _fmtMicros(int micros) => "${_numFmt.format(micros)}µs";
 _fmtMicrosPad(int micros) => "${_fmtMicros(micros).padLeft(MICROS_WIDTH)}";
 
 _fmtMicrosList(Metrics m) =>
-    m.slowestRecords.takeWhile(_isNotNull).map((r) => _fmtMicros(r.microseconds)).join(", ");
+    m.slowestRecords.take(NUM_TO_REPORT_IN_LIST).takeWhile(_isNotNull).map((r) => _fmtMicros(r.microseconds)).join(", ");
 
 _fmtMetrics(String prefix, Metrics m) {
   return "${prefix}${_fmtTag(m.name)}: ${_fmtMicrosPad(m.totalTimeMicro)}: (${_fmtMicrosList(m)}) count=${m.count}";
 }
 
+
+_groupByDetail(List<MetricRecord> records) {
+  var byDetail = {};
+  var byDetailCount = {};
+  records.where(_isNotNull).forEach((MetricRecord record) {
+    var cumulativeRecord = byDetail[record.detail];
+    if (cumulativeRecord == null) {
+      cumulativeRecord = byDetail[record.detail] = new MetricRecord(record.tag, record.detail, record.microseconds);
+      byDetailCount[record.detail] = 1;
+    } else {
+      cumulativeRecord.microseconds += record.microseconds;
+      byDetailCount[record.detail] += 1;
+    }
+  });
+  var result = byDetail.values.map((r) {r.detail = "${r.detail}: count=${byDetailCount[r.detail]}"; return r;}).toList();
+  result.sort((a, b) => b.microseconds - a.microseconds);
+  return result;
+}
+
+
 _fmtSlowMetrics(String prefix, Metrics m) {
   String nestedPrefix = "$prefix  ${''.padLeft(TAG_WIDTH)}";
-  return m.slowestRecords.take(2).takeWhile(_isNotNull).map(
+  // return m.slowestRecords.take(NUM_SLOWEST_TO_REPORT).takeWhile(_isNotNull).map(
+  //     (r) => "${nestedPrefix}${_fmtMicrosPad(r.microseconds)}: ${r.detail}").join("\n");
+  return _groupByDetail(m.slowestRecords).take(NUM_SLOWEST_TO_REPORT).takeWhile(_isNotNull).map(
       (r) => "${nestedPrefix}${_fmtMicrosPad(r.microseconds)}: ${r.detail}").join("\n");
 }
 
 _fmtSlowNestedMetrics(String prefix, Metrics m) {
   String nestedPrefix = "$prefix  ${''.padLeft(TAG_WIDTH)}";
-  return m.slowestRecords.take(2).takeWhile(_isNotNull).map(
+  return m.slowestRecords.take(NUM_SLOWEST_NESTED_TO_REPORT).takeWhile(_isNotNull).map(
       (r) => "${nestedPrefix}${_fmtMicrosPad(r.microseconds)}: ${r.detail.name}\n${r.detail.toString(nestedPrefix+INDENT)}").join("\n");
 }
 
@@ -148,10 +173,13 @@ class MetricsCollector {
 
 @Injectable()
 class MetricRecord {
-  final int microseconds;
+  //ckck final int microseconds;
+  int microseconds; // ckck
   final String tag;
-  final Object detail;
-  const MetricRecord(this.tag, this.detail, this.microseconds);
+  //ckck final Object detail;
+  Object detail;
+  // const MetricRecord(this.tag, this.detail, this.microseconds);
+  MetricRecord(this.tag, this.detail, this.microseconds);
   toString() => "$tag(${microseconds}µs for $detail)";
 }
 
