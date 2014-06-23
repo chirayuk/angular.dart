@@ -282,12 +282,11 @@ class RootScopeCollectors {
   bool enabled = true; // ckck
   int digestMicros;
   int flushMicros;
+  bool ckckPrintOnEveryDigest = true;
 
   List<DigestPhaseCollectors> iterationCollectors;
   DigestPhaseCollectors flushCollectors = new DigestPhaseCollectors("Flush");
   MetricsCollector slowestIterations = new MetricsCollector("DigestLoops");
-  // This one is across digests while the rest are for the most recent digest.
-  MetricsCollector slowestDigests = new MetricsCollector("SlowestDigests");
 
   RootScopeCollectors(this.name, int ttl) {
     assert(ttl >= 1);
@@ -308,10 +307,30 @@ class RootScopeCollectors {
   reset() {
     resetPhaseCollectors();
     resetFlushPhaseCollectors();
-    slowestDigests.reset();
   }
 
   toString() {
     return "$runtimeType[$name](\n\tdirtyCheckingMetrics: $dirtyCheckingMetrics)";
+  }
+}
+
+
+class RootScopeAllCollectors {
+  final String name;
+
+  MetricsCollector slowestDigests = new MetricsCollector("Global");
+
+  RootScopeAllCollectors(this.name);
+
+  reset() {
+    slowestDigests.reset();
+  }
+
+  toString([String prefix=""]) {
+    Metrics metrics = slowestDigests.metrics;
+    return "$metrics";
+    // return "SLOWEST DIGESTS:\n" +
+    //     "${_fmtMetrics(prefix, metrics)}\n${_fmtSlowNestedMetrics(prefix, iterationMetrics)}\n" +
+    //     "${prefix}${_fmtTag(flushMetrics.name)}: ${_fmtMicrosPad(flushMicros)}\n${flushMetrics.toString(prefix + INDENT)}";
   }
 }

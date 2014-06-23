@@ -1,5 +1,7 @@
 part of angular.core_internal;
 
+const String DIGEST_TAG = "Digest";
+
 typedef EvalFunction0();
 typedef EvalFunction1(context);
 
@@ -281,6 +283,11 @@ class Scope {
     return null;
   }
 
+  void _printSlowestDigests() {
+    _asyncMetricsPrintTimer = null;
+    //ckck print(_rootScopeAllCollectors);
+  }
+
   dynamic apply([expression, Map locals]) {
     _assertInternalStateConsistency();
     rootScope._transitionState(null, RootScope.STATE_APPLY);
@@ -292,7 +299,23 @@ class Scope {
       rootScope.._transitionState(RootScope.STATE_APPLY, null)
                ..digest()
                ..flush();
-      print("${new RootScopeMetrics(_rootScopeCollectors)}\n\n");
+      MetricRecord digestRecord;
+      _rootScopeAllCollectors.slowestDigests.record(DIGEST_TAG,
+          () {
+            digestRecord = new RootScopeMetrics(_rootScopeCollectors);
+            if (_asyncMetricsPrintTimer == null) {
+              _zone.runOutsideAngular(() {
+                _asyncMetricsPrintTimer = new async.Timer(RootScope._asyncMetricsPrintDuration, _printSlowestDigests);
+              });
+            }
+            return digestRecord;
+          },
+          _rootScopeCollectors.flushMicros + _rootScopeCollectors.digestMicros);
+      if (_rootScopeCollectors.ckckPrintOnEveryDigest || digestRecord != null) {
+        if (digestRecord == null) digestRecord = new RootScopeMetrics(_rootScopeCollectors);
+        print("$digestRecord\n\n");
+      }
+
     }
   }
 
@@ -575,6 +598,9 @@ class RootScope extends Scope {
 
   final ScopeStats _scopeStats;
   final RootScopeCollectors _rootScopeCollectors;
+  final RootScopeAllCollectors _rootScopeAllCollectors;
+  Timer _asyncMetricsPrintTimer;
+  static const Duration _asyncMetricsPrintDuration = const Duration(milliseconds: 100);
 
   String _state;
 
@@ -648,6 +674,7 @@ class RootScope extends Scope {
         _astParser = astParser,
         _ttl = ttl,
         _rootScopeCollectors = new RootScopeCollectors("ROOT", ttl.ttl),
+        _rootScopeAllCollectors = new RootScopeAllCollectors("ALL"),
         super(context, null, null,
             new RootWatchGroup(fieldGetterFactory,
                 new DirtyCheckingChangeDetector(fieldGetterFactory), context),
