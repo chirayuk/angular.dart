@@ -455,20 +455,17 @@ class RootWatchGroup extends WatchGroup {
     MetricsCollector evalCheckCollector = metricsCollectors.evalCheck;
     MetricsCollector evalOnChangeCollector = metricsCollectors.evalOnChange;
     if (evalCheckCollector.enabled) {
-      _stopwatch.start();
       _evalOnChangeStopwatch.start();
       while (evalRecord != null) {
         try {
           if (evalStopwatch != null) evalCount++;
-          _evalOnChangeStopwatch.stop();
-          _evalOnChangeStopwatch.reset();
-          _stopwatch.reset();
-          bool dirty = evalRecord.checkWithStopWatch(_evalOnChangeStopwatch);
-          int elapsedMicros = _stopwatch.elapsedMicroseconds;
+          _evalOnChangeStopwatch.stop(); _evalOnChangeStopwatch.reset();
+          _stopwatch.stop(); _stopwatch.reset();
+          bool dirty = evalRecord.checkWithStopWatch(_stopwatch, _evalOnChangeStopwatch);
+          int checkMicros = _stopwatch.elapsedMicroseconds;
           int onChangeMicros = _evalOnChangeStopwatch.elapsedMicroseconds;
-          elapsedMicros -= onChangeMicros;
           evalCheckCollector.record(
-              EVAL_CHECK_TAG, () => _watchRecordToDetail(evalRecord), elapsedMicros);
+              EVAL_CHECK_TAG, () => _watchRecordToDetail(evalRecord), checkMicros);
           evalOnChangeCollector.record(
               EVAL_ON_CHANGE_TAG, () => _watchRecordToDetail(evalRecord), onChangeMicros);
           if (dirty && changeLog != null) {
@@ -481,7 +478,6 @@ class RootWatchGroup extends WatchGroup {
         }
         evalRecord = evalRecord._nextEvalWatch;
       }
-      _stopwatch.stop();
     } else {
       while (evalRecord != null) {
         try {
@@ -871,7 +867,7 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
 
   bool check() => checkWithStopWatch();
 
-  bool checkWithStopWatch([StopWatch onChangeStopwatch]) {
+  bool checkWithStopWatch([StopWatch onCheckStopwatch, StopWatch onChangeStopwatch]) {
     var value;
     switch (mode) {
       case _MODE_MARKER_:
@@ -879,16 +875,22 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
         return false;
       case _MODE_PURE_FUNCTION_:
         if (!dirtyArgs) return false;
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = Function.apply(fn, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         dirtyArgs = false;
         break;
       case _MODE_FUNCTION_:
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = Function.apply(fn, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         dirtyArgs = false;
         break;
       case _MODE_PURE_FUNCTION_APPLY_:
         if (!dirtyArgs) return false;
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (fn as FunctionApply).apply(args);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         dirtyArgs = false;
         break;
       case _MODE_FIELD_OR_METHOD_CLOSURE_:
@@ -904,18 +906,26 @@ class _EvalWatchRecord implements WatchRecord<_Handler> {
         } else {
           mode = _MODE_FIELD_CLOSURE_;
         }
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       case _MODE_METHOD_:
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = Function.apply(fn, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       case _MODE_FIELD_CLOSURE_:
         var closure = fn(_object);
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       case _MODE_MAP_CLOSURE_:
         var closure = object[name];
+        if (onCheckStopwatch != null) onCheckStopwatch.start();
         value = (closure == null) ? null : Function.apply(closure, args, namedArgs);
+        if (onCheckStopwatch != null) onCheckStopwatch.stop();
         break;
       default:
         assert(false);
