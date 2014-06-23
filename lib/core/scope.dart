@@ -580,7 +580,16 @@ class RootScope extends Scope {
 
   // Set this tag microtasks/async functions for the metrics collector to blame
   // a slow async call.
-  String asyncDetail; // ckck
+  String asyncDetail = ""; // ckck
+  String addAsyncDetail(String message) {
+    String oldAsyncDetail = asyncDetail;
+    if (asyncDetail == null) {
+      asyncDetail = message;
+    } else {
+      asyncDetail = "$oldAsyncDetail » $message";
+    }
+    return oldAsyncDetail;
+  }
 
   /**
    *
@@ -826,7 +835,7 @@ class RootScope extends Scope {
     if (message != null) {
       return message;
     }
-    if (ckck_use_async_detail_message && asyncDetail != null) {
+    if (ckck_use_async_detail_message && asyncDetail != "") {
       return asyncDetail;
     }
     if (!ckck_use_stack_traces) {
@@ -851,35 +860,43 @@ class RootScope extends Scope {
   }
 
   _runAsyncFns(MetricsCollector metricsCollector) {
-    var count = 0;
-    if (_rootScopeCollectors.enabled) {
-      while (_runAsyncHead != null) {
-        try {
-          count++;
-          _runAsyncStopWatch.reset();
-          _runAsyncHead.fn();
-          int elapsedMicros = _runAsyncStopWatch.elapsedMicroseconds;
-          String message = _runAsyncHead.message;
-          metricsCollector.record(RUN_ASYNC_ITERATION_TAG, _runAsyncHead.message, elapsedMicros);
-        } catch (e, s) {
-          _exceptionHandler(e, s);
+    String oldAsyncDetail = asyncDetail;
+    try {
+      var count = 0;
+      if (_rootScopeCollectors.enabled) {
+        while (_runAsyncHead != null) {
+          try {
+            count++;
+            String message = _runAsyncHead.message;
+            addAsyncDetail(message);
+            _runAsyncStopWatch.reset();
+            _runAsyncHead.fn();
+            int elapsedMicros = _runAsyncStopWatch.elapsedMicroseconds;
+            asyncDetail = oldAsyncDetail;
+            metricsCollector.record(RUN_ASYNC_ITERATION_TAG, message, elapsedMicros);
+          } catch (e, s) {
+            _exceptionHandler(e, s);
+          }
+          _runAsyncHead = _runAsyncHead._next;
         }
-        _runAsyncHead = _runAsyncHead._next;
-      }
-      _runAsyncStopWatch.stop();
-    } else {
-      while (_runAsyncHead != null) {
-        try {
-          count++;
-          _runAsyncHead.fn();
-        } catch (e, s) {
-          _exceptionHandler(e, s);
+        _runAsyncStopWatch.stop();
+      } else {
+        while (_runAsyncHead != null) {
+          try {
+            count++;
+            _runAsyncHead.fn();
+          } catch (e, s) {
+            _exceptionHandler(e, s);
+          }
+          _runAsyncHead = _runAsyncHead._next;
         }
-        _runAsyncHead = _runAsyncHead._next;
       }
+      _runAsyncTail = null;
+      return count;
     }
-    _runAsyncTail = null;
-    return count;
+    finally {
+      asyncDetail = oldAsyncDetail;
+    }
   }
 
   void domWrite(fn(), [String message]) {
