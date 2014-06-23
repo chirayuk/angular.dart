@@ -883,6 +883,7 @@ class RootScope extends Scope {
   }
 
   void domWrite(fn(), [String message]) {
+    message = _ckckFixupMessage(fn, message); // ckck
     var chain = new _FunctionChain(fn, message);
     if (_domWriteHead == null) {
       _domWriteHead = _domWriteTail = chain;
@@ -892,6 +893,7 @@ class RootScope extends Scope {
   }
 
   void domRead(fn(), [String message]) {
+    message = _ckckFixupMessage(fn, message); // ckck
     var chain = new _FunctionChain(fn, message);
     if (_domReadHead == null) {
       _domReadHead = _domReadTail = chain;
