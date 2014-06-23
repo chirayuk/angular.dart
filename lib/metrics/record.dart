@@ -1,7 +1,7 @@
 part of angular.metrics;
 
 const int MICROS_WIDTH = 10;
-const int TAG_WIDTH = 10;
+const int TAG_WIDTH = 14;
 const String INDENT = "              ";
 const int NUM_TO_REPORT_IN_LIST = 10;
 const int NUM_SLOWEST_TO_REPORT = 8;
@@ -20,7 +20,11 @@ _fmtMicrosList(Metrics m) =>
     m.slowestRecords.take(NUM_TO_REPORT_IN_LIST).takeWhile(_isNotNull).map((r) => _fmtMicros(r.microseconds)).join(", ");
 
 _fmtMetrics(String prefix, Metrics m) {
-  return "${prefix}${_fmtTag(m.name)}: ${_fmtMicrosPad(m.totalTimeMicro)}: (${_fmtMicrosList(m)}) count=${m.count}";
+  if (m.count > 1) {
+    return "${prefix}${_fmtTag(m.name)}: ${_fmtMicrosPad(m.totalTimeMicro)}: (${_fmtMicrosList(m)}) count=${m.count}";
+  } else {
+    return "${prefix}${_fmtTag(m.name)}: ${_fmtMicrosPad(m.totalTimeMicro)}: count=${m.count}";
+  }
 }
 
 
@@ -265,9 +269,10 @@ class RootScopeMetrics {
       flushMetrics = new DigestPhaseMetrics(rsCollectors.flushCollectors);
 
   toString([String prefix=""]) {
-    return "${_fmtMetrics(prefix, iterationMetrics)}\n${_fmtSlowNestedMetrics(prefix, iterationMetrics)}" +
+    return "Digest: ${_fmtMicrosPad(digestMicros + flushMicros)} (all iterations + flush + all overhead)\n"
+        "${_fmtMetrics(prefix, iterationMetrics)}\n${_fmtSlowNestedMetrics(prefix, iterationMetrics)}" +
         "\n" +
-        "${prefix}${_fmtTag(flushMetrics.name)}: ${_fmtMicrosPad(flushMicros)}\n${flushMetrics.toString(prefix + INDENT)}";
+        "${prefix}${_fmtTag(flushMetrics.name)}: ${_fmtMicrosPad(flushMicros)}\n${flushMetrics.toString(prefix + INDENT + ''.padLeft(TAG_WIDTH) + '  ')}";
   }
 }
 
@@ -280,7 +285,7 @@ class RootScopeCollectors {
 
   List<DigestPhaseCollectors> iterationCollectors;
   DigestPhaseCollectors flushCollectors = new DigestPhaseCollectors("Flush");
-  MetricsCollector slowestIterations = new MetricsCollector("Digest");
+  MetricsCollector slowestIterations = new MetricsCollector("DigestLoops");
   // This one is across digests while the rest are for the most recent digest.
   MetricsCollector slowestDigests = new MetricsCollector("SlowestDigests");
 
