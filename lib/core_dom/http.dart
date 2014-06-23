@@ -479,7 +479,7 @@ class Http {
       }
       var cachedResponse = (cache != null && method == 'GET') ? cache.get(url) : null;
       if (cachedResponse != null) {
-        String oldAsyncDetail = _rootScope.addAsyncDetail(CachedHttpResponse('$url'));
+        String oldAsyncDetail = _rootScope.addAsyncDetail("CachedResponse('$url')");
         return new async.Future.value(new HttpResponse.copy(cachedResponse));
         _rootScope.asyncDetail = oldAsyncDetail;
       }

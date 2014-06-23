@@ -586,7 +586,7 @@ class RootScope extends Scope {
     if (asyncDetail == null) {
       asyncDetail = message;
     } else {
-      asyncDetail = "$oldAsyncDetail » $message";
+      asyncDetail = "$message from $oldAsyncDetail";
     }
     return oldAsyncDetail;
   }
@@ -830,20 +830,18 @@ class RootScope extends Scope {
   // debugging flags to capture the async context (stack traces are slow so
   // beware of enabling them.)
   static const bool ckck_use_stack_traces = false;
-  static const bool ckck_use_async_detail_message = true;
   String _ckckFixupMessage(fn(), message) {
     if (message != null) {
       return message;
     }
-    if (ckck_use_async_detail_message && asyncDetail != "") {
-      return asyncDetail;
+    if (ckck_use_stack_traces) {
+      try { throw []; } catch (e, s) {
+        message = "$s";
+      }
+    } else {
+      message = "<unknown>";
     }
-    if (!ckck_use_stack_traces) {
-      return "<unknown>";
-    }
-    try { throw []; } catch (e, s) {
-      return "$s";
-    }
+    return (asyncDetail == "") ? message : "$message from $asyncDetail";
   }
 
 
