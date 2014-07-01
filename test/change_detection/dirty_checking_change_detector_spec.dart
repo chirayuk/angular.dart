@@ -271,6 +271,24 @@ void testWithGetterFactory(FieldGetterFactory getterFactory) {
               removals: []));
         });
 
+        iit('ckck: issue 1158: should support switching refs', async(() {
+          var list = [0];
+
+          var record = detector.watch(list, null, null);
+          if (detector.collectChanges().moveNext()) {
+            detector.collectChanges();
+          }
+
+          record.object = [1, 0];
+          var iterator = detector.collectChanges()..moveNext();
+          expect(iterator.current.currentValue, toEqualCollectionRecord(
+              collection: ['1[null -> 0]', '0[0 -> 1]'],
+              previous: ['0[0 -> 1]'],
+              additions: ['1[null -> 0]'],
+              moves: ['0[0 -> 1]'],
+              removals: []));
+        }));
+
         it('should handle swapping elements correctly', () {
           var list = [1, 2];
           var record = detector.watch(list, null, null);
