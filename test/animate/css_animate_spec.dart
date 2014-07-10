@@ -4,7 +4,7 @@ import 'dart:async';
 
 import '../_specs.dart';
 
-main() {
+_main() {
   describe('CssAnimate', () {
     TestBed _;
     Animate animate;
@@ -98,6 +98,11 @@ main() {
       expect(spans.first).not.toHaveClass('ng-add');
     }));
   });
+}
+
+main() {
+  _main();
+  _main();
 }
 
 class MockAnimationLoop extends Mock implements AnimationLoop {
