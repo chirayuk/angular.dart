@@ -24,6 +24,7 @@ export 'package:angular/core/annotation.dart';
 export 'package:angular/core/registry.dart';
 export 'package:angular/core/module_internal.dart';
 export 'package:angular/core_dom/module_internal.dart';
+export 'package:angular/core_dom/type_to_uri_mapper.dart';
 export 'package:angular/core/parser/parser.dart';
 export 'package:angular/core/parser/lexer.dart';
 export 'package:angular/directive/module.dart';
@@ -39,6 +40,18 @@ es(String html) {
 }
 
 e(String html) => es(html).first;
+
+// This would be "base/test/core/" when running under Karma.  However, it can be
+// different with a different test runner so we will determine it dynamically.
+String get dynamicUrlPrefix {
+  var pathSegments = Uri.base.pathSegments;
+  // get rid of the html file at the end.
+  pathSegments = pathSegments.sublist(0, pathSegments.length - 1);
+  print("dsds: Uri.base: ${Uri.base}");
+  print("dsds: pathSegments: ${pathSegments}");
+  print("dsds: dynamicUrlPrefix: ${pathSegments.join('/')}/");
+  return "${pathSegments.join('/')}/";
+}
 
 Expect expect(actual, [matcher]) {
   final expect = new Expect(actual);
