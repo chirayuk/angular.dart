@@ -3,6 +3,7 @@ library angular.test.core_dom.uri_resolver_spec;
 import 'package:angular/core_dom/absolute_uris.dart' as absolute;
 import '../_specs.dart';
 
+import 'dart:mirrors';
 
 void main() {
   describe('url_resolver', () {
@@ -17,19 +18,30 @@ void main() {
       container.remove();
     });
 
-    var local = Uri.base;
-    var originalBase = local.resolve('foo/foo.html');
+    // TODO(chirayu): Repeat all these tests again with originalBase set to
+    //     reflectType(SomeTypeInThisFile).owner.uri, which will be an http URL
+    //     instead of a package: URL (because of the way karma runs the tests)
+    //     and ensure that after resolution, the result doesn't have a protocol
+    //     or domain but contains the full path.
+    var originalBase = Uri.parse('package:angular/test/core_dom/absolute_uris_spec.dart');
 
     DocumentFragment fragment(String html) =>
         new DocumentFragment.html(html, validator: new NullSanitizer());
 
-    it('resolves attribute URIs', () {
-      var node = new ImageElement()..attributes['src'] = 'foo.png';
+    testResolution(url, expected) {
+      iit('resolves attribute URIs $url to $expected', () {
+        var node = new ImageElement()..attributes['src'] = url;
 
-      absolute.resolveDom(node, originalBase);
-      expect(node.attributes['src']).toEqual(
-          originalBase.resolve('foo.png').toString());
-    });
+        absolute.resolveDom(node, originalBase);
+        expect(node.attributes['src']).toEqual(expected);
+      });
+    }
+
+    testResolution('foo.html', 'packages/angular/test/core_dom/foo.html');
+    testResolution('./foo.html', 'packages/angular/test/core_dom/foo.html');
+    testResolution('/foo.html', '/foo.html');
+    testResolution('http://google.com/foo.html', 'http://google.com/foo.html');
+
 
     it('resolves template contents', () {
       var dom = fragment('''

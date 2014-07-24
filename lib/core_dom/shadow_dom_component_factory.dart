@@ -15,7 +15,8 @@ abstract class BoundComponentFactory {
         Component component, ViewCache viewCache, DirectiveMap directives,
         AnnotationUriResolver uriResolver, Type type) {
     if (component.template != null) {
-      return new async.Future.value(viewCache.fromHtml(component.template, directives));
+      var baseUri = uriResolver.resolve(null, type);
+      return new async.Future.value(viewCache.fromHtml(component.template, directives, baseUri));
     }
     if (component.templateUrl != null) {
       var url = uriResolver.resolve(component.templateUrl, type);

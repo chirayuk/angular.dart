@@ -141,15 +141,15 @@ class ViewCache {
     cacheRegister.registerCache('viewCache', viewFactoryCache);
   }
 
-  ViewFactory fromHtml(String html, DirectiveMap directives, [String url]) {
+  ViewFactory fromHtml(String html, DirectiveMap directives, [String baseUrl]) {
     ViewFactory viewFactory = viewFactoryCache.get(html);
     
     var div = parseDocument.createElement('div');
     div.setInnerHtml(html, treeSanitizer: treeSanitizer);
     
     if (viewFactory == null) {
-      if (url != null) {
-        absolute.resolveDom(div, Uri.parse(url));
+      if (baseUrl != null) {
+        absolute.resolveDom(div, Uri.parse(baseUrl));
       } else {
         absolute.resolveDom(div);
       }
@@ -164,7 +164,7 @@ class ViewCache {
     ViewFactory viewFactory = viewFactoryCache.get(url);
     if (viewFactory == null) {
       return http.get(url, cache: templateCache).then((resp) {
-        var viewFactoryFromHttp = fromHtml(resp.responseText, directives);
+        var viewFactoryFromHttp = fromHtml(resp.responseText, directives, url);
         viewFactoryCache.put(url, viewFactoryFromHttp);
         return viewFactoryFromHttp;
       });

@@ -17,31 +17,25 @@ abstract class AnnotationUriResolver {
   /// package-relative URIs. Resulting URIs will use 'packages/' to indicate
   /// package-relative URIs.
   static String combine(Uri typeUri, String uri) {
-    var original = Uri.parse(uri);
-    // Convert to package: for combination with lib URI
-    if (uri.startsWith(_libraryRegExp)) {
-      uri = 'package:${original.pathSegments.skip(1).join('/')}';
-    } else if (_path.isAbsolute(uri)) {
-      // If it's absolute but not package-relative, then just use that.
-      return uri;
-    }
+    var resolved;
 
-    var parsed = typeUri.resolve(uri);
-
-    if (parsed.scheme == 'package') {
-      return 'packages/${parsed.path}';
-    }
-    if (parsed.isAbsolute) {
-      var path = Uri.base.path;
-      if (!path.endsWith('/')) {
-        var parts = Uri.base.pathSegments.toList();
-        parts.removeLast();
-        path = parts.join('/');
+    if (uri == null) {
+      resolved = typeUri;
+    } else {
+      if (uri.startsWith("/") || uri.startsWith('packages/')) {
+        return uri;
       }
 
-      return _path.relative(parsed.toString(),
-          from: '${Uri.base.origin}/$path');
+      resolved = typeUri.resolve(uri);
     }
-    return parsed.toString();
+
+    if (resolved.scheme == "package") {
+      return 'packages/${resolved.path}';
+    } else {
+      // TODO(chirayu): This is an absolute path.  Either we should make this a
+      // path relative to the baseUrl here, or we should enhance template cache
+      // to support both absolute and relative URLs.
+      return resolved.toString();
+    }
   }
 }

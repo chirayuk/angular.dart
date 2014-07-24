@@ -11,6 +11,8 @@ library angular.core_dom.absolute_uris;
 import 'dart:html';
 import 'dart:js' as js;
 
+import 'package:angular/core_dom/annotation_uri_resolver.dart';
+
 /**
  * Resolves all relative URIs within the DOM from being relative to
  * [originalBase] to being absolute.
@@ -73,7 +75,7 @@ void _resolveElementAttributes(Element element, Uri originalBase) {
     if (attrs.containsKey(attr)) {
       var value = attrs[attr];
       if (!value.contains(_urlTemplateSearch)) {
-        attrs[attr] = originalBase.resolve(value).toString();
+        attrs[attr] = AnnotationUriResolver.combine(originalBase, value).toString();
       }
     }
   }
@@ -90,7 +92,7 @@ String _replaceUrlsInCssText(String cssText, Uri originalBase, RegExp regexp) {
   return cssText.replaceAllMapped(regexp, (match) {
     var url = match[2];
     url = url.replaceAll(_quotes, '');
-    var urlPath = originalBase.resolve(url).toString();
+    var urlPath = AnnotationUriResolver.combine(originalBase, url).toString();
     return '${match[1]}\'$urlPath\'${match[3]}';
   });
 }
