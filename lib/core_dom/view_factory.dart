@@ -144,16 +144,13 @@ class ViewCache {
   ViewFactory fromHtml(String html, DirectiveMap directives, [String baseUrl]) {
     ViewFactory viewFactory = viewFactoryCache.get(html);
     
+    // TODO: Avoid doing this on every lookup.
+    html = absolute.resolveHtml(html, baseUrl);
+
     var div = parseDocument.createElement('div');
     div.setInnerHtml(html, treeSanitizer: treeSanitizer);
     
     if (viewFactory == null) {
-      if (baseUrl != null) {
-        absolute.resolveDom(div, Uri.parse(baseUrl));
-      } else {
-        absolute.resolveDom(div);
-      }
-
       viewFactory = compiler(div.nodes, directives);
       viewFactoryCache.put(html, viewFactory);
     }

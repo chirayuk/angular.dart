@@ -93,9 +93,10 @@ class PlatformViewCache implements ViewCache {
         originalUri = Uri.base;
       }
 
+      // Why was this needed?
+      // html = absolute.resolveHtml(html, originalUri);
       var div = parseDocument.createElement('div');
       div.setInnerHtml(html, treeSanitizer: treeSanitizer);
-      absolute.resolveDom(div, originalUri);
 
       if (selector != null && selector != ""
           && platform.shadowDomShimRequired) {

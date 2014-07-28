@@ -13,11 +13,22 @@ import 'dart:js' as js;
 
 import 'package:angular/core_dom/annotation_uri_resolver.dart';
 
+
+String resolveHtml(String html, [Uri baseUrl]) {
+  if (baseUrl == null) {
+    return html;
+  }
+  Document document = new DomParser().parseFromString(
+      "<!doctype html><html><body>$html</body></html>", "text/html");
+  _resolveDom(document.body, baseUrl);
+  return document.body.innerHtml;
+}
+
 /**
  * Resolves all relative URIs within the DOM from being relative to
  * [originalBase] to being absolute.
  */
-void resolveDom(Node root, [Uri originalBase]) {
+void _resolveDom(Node root, [Uri originalBase]) {
   if (originalBase == null) {
     originalBase = Uri.base;
   }
@@ -28,7 +39,7 @@ void resolveDom(Node root, [Uri originalBase]) {
   // handle template.content
   for (var template in _querySelectorAll(root, 'template')) {
     if (template.content != null) {
-      resolveDom(template.content, originalBase);
+      _resolveDom(template.content, originalBase);
     }
   }
 }

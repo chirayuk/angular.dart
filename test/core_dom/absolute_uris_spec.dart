@@ -25,75 +25,64 @@ void main() {
     //     or domain but contains the full path.
     var originalBase = Uri.parse('package:angular/test/core_dom/absolute_uris_spec.dart');
 
-    DocumentFragment fragment(String html) =>
-        new DocumentFragment.html(html, validator: new NullSanitizer());
-
     testResolution(url, expected) {
       iit('resolves attribute URIs $url to $expected', () {
-        var node = new ImageElement()..attributes['src'] = url;
-
-        absolute.resolveDom(node, originalBase);
-        expect(node.attributes['src']).toEqual(expected);
+        var html = absolute.resolveHtml("<img src='$url'>", originalBase);
+        expect(html).toEqual('<img src="$expected">');
       });
     }
 
+    testResolution('packages/angular/test/core_dom/foo.html', 'packages/angular/test/core_dom/foo.html');
     testResolution('foo.html', 'packages/angular/test/core_dom/foo.html');
     testResolution('./foo.html', 'packages/angular/test/core_dom/foo.html');
     testResolution('/foo.html', '/foo.html');
     testResolution('http://google.com/foo.html', 'http://google.com/foo.html');
 
-
-    it('resolves template contents', () {
-      var dom = fragment('''
+    testTemplateResolution(url, expected) {
+      expect(absolute.resolveHtml('''
         <template>
-          <img src='foo.png'>
+          <img src="$url">
+        </template>''', originalBase)).toEqual('''
+        <template>
+          <img src="$expected">
         </template>''');
+    }
 
-      absolute.resolveDom(dom, originalBase);
-      var img = dom.children[0].content.children[0];
-      container.append(img);
-      expect(img.src).toEqual(originalBase.resolve('foo.png').toString());
+    iit('resolves template contents', () {
+        testTemplateResolution('foo.png', 'packages/angular/test/core_dom/foo.png');
     });
     
-    it('does not change absolute urls when they are resolved', () {
-      var dom = fragment('''
-        <template>
-          <img src='/foo/foo.png'>
-        </template>''');
-
-      absolute.resolveDom(dom, originalBase);
-      var img = dom.children[0].content.children[0];
-      container.append(img);
-      expect(img.src).toEqual(originalBase.resolve('foo.png').toString());
+    iit('does not change absolute urls when they are resolved', () {
+      testTemplateResolution('/foo/foo.png', '/foo/foo.png');
     });
 
     // NOTE: These two tests currently fail on firefox, but pass on chrome,
     // safari and dartium browsers. Add back into the list of tests when firefox
     // pushes new version(s).
     xit('resolves CSS URIs', () {
-      var dom = fragment('''
+      var html = ('''
         <style>
           body {
             background-image: url(foo.png);
           }
         </style>''');
 
-      absolute.resolveDom(dom, originalBase);
-      var style = dom.children[0];
+      html = absolute.resolveHtml(html, originalBase);
+      var style = html.children[0];
       container.append(style);
       expect(style.sheet.rules[0].style.backgroundImage).toEqual(
           'url(${originalBase.resolve('foo.png')})');
     });
 
     xit('resolves @import URIs', () {
-      var dom = fragment('''
+      var html = ('''
         <style>
           @import url("foo.css");
           @import 'bar.css';
         </style>''');
 
-      absolute.resolveDom(dom, originalBase);
-      var style = dom.children[0];
+      html = absolute.resolveHtml(html, originalBase);
+      var style = html.children[0];
       document.body.append(style);
       CssImportRule import1 = style.sheet.rules[0];
       expect(import1.href).toEqual(originalBase.resolve('foo.css').toString());
