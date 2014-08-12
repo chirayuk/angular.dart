@@ -20,19 +20,22 @@ abstract class TypeToUriMapper {
     return combine(uriForType(type), uri);
   }
 
-  /// Combines a type-based URI with a relative URI.
-  ///
-  /// [typeUri] is assumed to use package: syntax for package-relative
-  /// URIs, while [uri] is assumed to use 'packages/' syntax for
+  // Combines a type-based URI with a relative URI.
+  //
+  // [baseUri] is assumed to use package: syntax for package-relative
+  // type URIs, but can be an absolute path for ng-include, etc.  If it is
+  //  relative to Uri.baseUri, then we will make it relative so that the template
+  //  can be looked up in the templateCache.
+  //  while [uri] is assumed to use 'packages/' syntax for
   /// package-relative URIs. Resulting URIs will use 'packages/' to indicate
   /// package-relative URIs.
-  String combine(Uri typeUri, String uri) {
+  String combine(Uri baseUri, String uri) {
     if (!_resourceResolverConfig.useRelativeUrls) {
       return uri;
     }
     
     if (uri == null) {
-      uri = typeUri.path;
+      uri = baseUri.path;
     } else {
       // if it's absolute but not package-relative, then just use that
       if (uri.startsWith("/") || uri.startsWith('packages/')) {
@@ -40,14 +43,14 @@ abstract class TypeToUriMapper {
       }
     }
     // If it's not absolute, then resolve it first
-    Uri resolved = typeUri.resolve(uri);
+    Uri resolved = baseUri.resolve(uri);
 
     // If it's package-relative, tack on 'packages/' - Note that eventually
     // we may want to change this to be '/packages/' to make it truly absolute
     if (resolved.scheme == 'package') {
       return 'packages/${resolved.path}';
-    } else if (typeUri.isAbsolute && typeUri.toString().startsWith(baseUri)) {
-      return typeUri.path;
+    } else if (baseUri.isAbsolute && baseUri.toString().startsWith(baseUri)) {
+      return baseUri.path;
     } else {
       return resolved.toString();
     }

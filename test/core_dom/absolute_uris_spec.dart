@@ -46,11 +46,17 @@ void main() {
     // the way karma runs the tests) and ensure that after resolution, the result doesn't
     // have a protocol or domain but contains the full path    
     
-//     var typeMirror = reflectType(NullSanitizer);
-//     LibraryMirror lib = typeMirror.owner;
-//     originalBase = lib.uri 
+//    var typeMirror = reflectType(NullSanitizer);
+//    LibraryMirror lib = typeMirror.owner;
+//    originalBase = 'http://FOO/bar.html';
     
-//    testResolution('packages/angular/test/core_dom/foo.html', 'packages/angular/test/core_dom/foo.html');
+    // These expects are required because the test cases that follow are
+    // testing that absolute URIs that begin with Uri.base are also resolved to
+    // URIs without a domain or protocol but contain a full path.
+    expect(Uri.base.isAbsolute);
+    expect(Uri.base.toString().startsWith("http://localhost");
+    testResolution('http://DOMAIN:PORT/packages/angular/test/core_dom/foo.html'), 'packages/angular/test/core_dom/foo.html');
+    testResolution(Uri.base.resolve('/packages/angular/test/core_dom/foo.html'), 'packages/angular/test/core_dom/foo.html');
 //    testResolution('foo.html', 'packages/angular/test/core_dom/foo.html');
 //    testResolution('./foo.html', 'packages/angular/test/core_dom/foo.html');
 //    testResolution('/foo.html', '/foo.html');

@@ -11,6 +11,35 @@ _run({bool animationsAllowed}) {
       _ = tb;
       optimizer = new AnimationOptimizer(expand)..animationsAllowed = animationsAllowed;
     });
+
+
+    runTest(srcUrl, expectedUrl) {
+      if (!resolveRelativeUrls) {
+        expectedUrl = srcUrl;
+      }
+    }
+
+    _run({resolveRelativeUrls}) {
+      beforeEachModule(resolveRelativeUrls)
+      if (staticMode) {
+        // config static mapper
+      } else {
+        // config dynamic mapper
+      }
+      describe('', () {
+        runTest("foo.html", "packages/a/b/foo.html");
+        runTest("foo.html", "packages/a/b/foo.html");
+        runTest("foo.html", "packages/a/b/foo.html");
+        runTest("foo.html", "packages/a/b/foo.html");
+        runTest("foo.html", "packages/a/b/foo.html");
+      });
+    }
+
+    _run(resolveRelativeUrls: true, staticMode: true);
+    _run(resolveRelativeUrls: false, staticMode: true);
+    _run(resolveRelativeUrls: true, staticMode: false);
+    _run(resolveRelativeUrls: false, staticMode: false);
+
     
     it('should prevent animations on child elements', () {
       var animation = new NoOpAnimation();
