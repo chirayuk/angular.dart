@@ -59,6 +59,14 @@ _run({useRelativeUrls}) {
           </template>''');
       });
 
+      // TODO
+      // background-image: url(http://foo.com/a/b\(asd\).css);
+      // background-image: url(   http://foo.com/a/b\(asd\).css   );
+      // background-image: url('http://foo.com/a/b\(asd\).css');
+      // background-image: url(   'http://foo.com/a/b\(asd\).css'  );
+      // background-image: url("http://foo.com/a/b\(asd\).css");
+      // background-image: url(   "http://foo.com/a/b\(asd\).css"  );
+
       it('should resolve CSS URIs in template: $urlToResolve to $expected', (ResourceUrlResolver resourceResolver) {
         var html_style = ('''
           <style>
@@ -72,7 +80,7 @@ _run({useRelativeUrls}) {
         var resolved_style = ('''
           <style>
             body {
-              background-image: url('$expected);
+              background-image: url('$expected');
             }
           </style>''');
         expect(html_style).toEqual(resolved_style);
@@ -89,7 +97,7 @@ _run({useRelativeUrls}) {
 
         var resolved_style = ('''
           <style>
-            @import url('$expected);
+            @import url('$expected');
             @import '$expected';
           </style>''');
         expect(html_style).toEqual(resolved_style);
@@ -140,9 +148,9 @@ _run({useRelativeUrls}) {
         expectedForHttpScheme:    'packages/angular/test/core_dom/foo.html');
 
     testBothSchemes(
-        urlToResolve:             'package:a.b/c/d/foo3.html',
-        expectedForPackageScheme: 'packages/a.b/c/d/foo3.html',
-        expectedForHttpScheme:    'packages/a.b/c/d/foo3.html');
+        urlToResolve:             'package:a.b/c/d/foo2.html',
+        expectedForPackageScheme: 'packages/a.b/c/d/foo2.html',
+        expectedForHttpScheme:    'packages/a.b/c/d/foo2.html');
 
     testBothSchemes(
         urlToResolve:             'image.png',
@@ -170,9 +178,9 @@ _run({useRelativeUrls}) {
         expectedForHttpScheme:    'a/b/image4.png');
 
     testBothSchemes(
-        urlToResolve:             'HTTP://LOCALHOST/packages/angular/test/core_dom/foo.html',
-        expectedForPackageScheme: 'packages/angular/test/core_dom/foo.html',
-        expectedForHttpScheme:    'packages/angular/test/core_dom/foo.html');
+        urlToResolve:             'HTTP://LOCALHOST/packages/angular/test/core_dom/foo3.html',
+        expectedForPackageScheme: 'packages/angular/test/core_dom/foo3.html',
+        expectedForHttpScheme:    'packages/angular/test/core_dom/foo3.html');
 
   });
 }
