@@ -28,6 +28,9 @@ class ResourceUrlResolver {
   static final RegExp _urlTemplateSearch = new RegExp('{{.*}}');
   static final RegExp _quotes = new RegExp('["\']');
   
+  // Ensures that Uri.base is http/https.
+  final _baseUri = Uri.base.origin + ("/");
+
   final TypeToUriMapper _uriMapper;
   final ResourceResolverConfig _config;
 
@@ -141,13 +144,20 @@ class ResourceUrlResolver {
     // we may want to change this to be '/packages/' to make it truly absolute
     if (resolved.scheme == 'package') {
       return 'packages/${resolved.path}';
-    } else if (uri.startsWith(Uri.base.origin.toString())) {
-      return uri;
+    } else if (resolved.isAbsolute && resolved.toString().startsWith(_baseUri)) {
+      var path = resolved.path;
+      return path.startsWith("/") ? path.substring(1) : path;
     } else {
       return resolved.toString();
     }
   }
   
+  String _ckck_combine(Uri baseUri, String uri) {
+    var result = _combine(baseUri, uri);
+    print("ckck: $runtimeType: combine($baseUri, $uri) → $result");
+    return result;
+  }
+
   String combineWithType(Type type, String uri) {
     return combine(_uriMapper.uriForType(type), uri);
   }
