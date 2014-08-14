@@ -124,7 +124,7 @@ class ResourceUrlResolver {
   /// URIs, while [uri] is assumed to use 'packages/' syntax for
   /// package-relative URIs. Resulting URIs will use 'packages/' to indicate
   /// package-relative URIs.
-  String combine(Uri baseUri, String uri) {
+  String _combine(Uri baseUri, String uri) {
     if (!_config.useRelativeUrls) {
        return uri;
     }
@@ -157,7 +157,7 @@ class ResourceUrlResolver {
     }
   }
   
-  String _ckck_combine(Uri baseUri, String uri) {
+  String combine(Uri baseUri, String uri) {
     var result = _combine(baseUri, uri);
     print("ckck: $runtimeType: combine($baseUri, $uri) → $result");
     return result;

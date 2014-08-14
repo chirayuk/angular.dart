@@ -4,10 +4,10 @@ import 'package:angular/angular.dart';
 import 'package:angular/application_factory.dart';
 import 'package:angular/animate/module.dart';
 
-part 'animation/repeat_demo.dart';
-part 'animation/visibility_demo.dart';
-part 'animation/stress_demo.dart';
-part 'animation/css_demo.dart';
+part 'repeat_demo.dart';
+part 'visibility_demo.dart';
+part 'stress_demo.dart';
+part 'css_demo.dart';
 
 @Controller(
     selector: '[animation-demo]',
@@ -25,6 +25,7 @@ class AnimationDemoModule extends Module {
     bind(StressDemo);
     bind(CssDemo);
     bind(AnimationDemo);
+    bind(ResourceResolverConfig, toValue: new ResourceResolverConfig(useRelativeUrls: false));
   }
 }
 main() {

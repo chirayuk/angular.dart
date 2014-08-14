@@ -3,20 +3,8 @@ part of animation;
 @Component(
     selector: 'repeat-demo',
     useShadowDom: false,
-    template: '''
-      <div class="repeat-demo">
-      <button ng-click="ctrl.addItem()">Add Thing</button>
-      <button ng-click="ctrl.removeItem()">Remove Thing
-      </button>
-      <ul>
-        <li ng-repeat="outer in ctrl.items">
-          <ul>
-            <li ng-repeat="inner in ctrl.items">{{inner}}</li>
-          </ul>
-        </li>
-      </ul>
-      </div>
-    ''',
+    // templateUrl: 'repeat_demo.html',
+    templateUrl: 'animation/repeat_demo.html',
     publishAs: 'ctrl',
     applyAuthorStyles: true)
 class RepeatDemo {
