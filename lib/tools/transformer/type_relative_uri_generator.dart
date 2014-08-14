@@ -23,7 +23,7 @@ class TypeRelativeUriGenerator extends Transformer with ResolverTransformer {
     var asset = transform.primaryInput;
     var id = asset.id;
     var outputFilename = '${path.url.basenameWithoutExtension(id.path)}'
-        '_type_relative_uris.dart';
+        '_static_type_to_uri_mapper.dart';
     var outputPath = path.url.join(path.url.dirname(id.path), outputFilename);
     var outputId = new AssetId(id.package, outputPath);
 
@@ -95,7 +95,7 @@ void _writePreamble(StringSink sink) {
   sink.write('''
 
 /// Used when URIs have been converted to be page-relative at build time.
-class _StaticAnnotationUriResolver implements AnnotationUriResolver {
+class _StaticTypeToUriMapper implements TypeToUriMapper {
   Uri uriForType(Type type) {
     var uri = _uriMapping[type];
     if (uri == null) {
@@ -105,7 +105,7 @@ class _StaticAnnotationUriResolver implements AnnotationUriResolver {
   }
 }
 
-final uriResolver = new _StaticAnnotationUriResolver();
+final typeToUriMapper = new _StaticTypeToUriMapper();
 
 final Map<Type, Uri> _uriMapping = <Type, Uri> {
 ''');
