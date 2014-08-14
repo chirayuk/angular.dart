@@ -31,10 +31,14 @@ _run({useRelativeUrls}) {
        ..bind(TypeToUriMapper, toImplementation: DynamicTypeToUriMapper);
     });
 
+    // Our tests depend on this to test http:// URL resolution (e.g. when the
+    // type's library scheme is http.)
+    assert(Uri.base.scheme == "http" || Uri.base.scheme == "https");
+
     toAppUrl(url) {
       var marker = "HTTP://LOCALHOST/";
       if (url.startsWith(marker)) {
-        return "${typeOrIncludeUri.origin}/${url.substring(marker.length)}";
+        return "${Uri.base.origin}/${url.substring(marker.length)}";
       } else {
         return url;
       }
@@ -47,8 +51,6 @@ _run({useRelativeUrls}) {
       var baseUri = typeOrIncludeUri;
       it('resolves URI $url to $expected', (ResourceUrlResolver resourceResolver) {
         var html = resourceResolver.resolveHtml("<img src='$url'>", baseUri);
-        print("ckck: expected: $expected");
-        print("ckck: actual html: $html");
         expect(html).toEqual('<img src="$expected">');
       });
     }
@@ -73,7 +75,13 @@ _run({useRelativeUrls}) {
     testResolution('foo.html', 'packages/angular/test/core_dom/foo.html');
     testResolution('./foo.html', 'packages/angular/test/core_dom/foo.html');
     testResolution('/foo.html', '/foo.html');
+
     testResolution('http://google.com/foo.html', 'http://google.com/foo.html');
+
+    testResolution('HTTP://LOCALHOST/a/b/image.png',
+                   'a/b/image.png');
+    testResolution('HTTP://LOCALHOST/packages/angular/test/core_dom/foo.html',
+                   'packages/angular/test/core_dom/foo.html');
 
     // A type URI need not always be a package: URI.  This can happen when:
     // • the type was defined in a Dart file that was
@@ -81,7 +89,7 @@ _run({useRelativeUrls}) {
     // • we are ng-include'ing a file, say, "a/b/foo.html", and we are trying to
     //   resolve paths inside foo.html.  Those should be resolved relative to
     //   something like http://localhost:8765/a/b/foo.html.
-    typeOrIncludeUri = Uri.base.resolve('/a/b/included_template.html');
+    typeOrIncludeUri = Uri.parse(toAppUrl('HTTP://LOCALHOST/a/b/included_template.html'));
 
     // "packges/" paths, though relative, should never be resolved.
     testResolution('packages/angular/test/core_dom/foo.html',
@@ -91,7 +99,6 @@ _run({useRelativeUrls}) {
 
     testResolution('image1.png', 'a/b/image1.png');
     testResolution('./image2.png', 'a/b/image2.png');
-    testResolution('style.css', 'a/b/style.css');
     testResolution('/image3.png', '/image3.png');
 
     testResolution('http://google.com/foo.html', 'http://google.com/foo.html');
@@ -114,6 +121,8 @@ _run({useRelativeUrls}) {
           <img src="$expected">
         </template>''');
     }
+
+    typeOrIncludeUri = Uri.parse('package:angular/test/core_dom/absolute_uris_spec.dart');
 
     it('resolves template contents', () {
       templateResolution('foo.png', 'packages/angular/test/core_dom/foo.png');
