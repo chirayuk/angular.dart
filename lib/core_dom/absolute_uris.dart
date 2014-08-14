@@ -6,13 +6,20 @@
  * URIs.
  */
 
+
+// TODO: Rename this library to a better name than absolute_uris.dart
+
+
 library angular.core_dom.absolute_uris;
 
 import 'dart:html';
 import 'dart:js' as js;
 
+import 'package:di/di.dart';
+
 import 'package:angular/core_dom/type_to_uri_mapper.dart';
 
+@Injectable()
 class ResourceUrlResolver {
   static final RegExp _cssUrlRegexp = new RegExp(r'(\burl\()([^)]*)(\))');
   static final RegExp _cssImportRegexp = new RegExp(r'(@import[\s]+(?!url\())([^;]*)(;)');
@@ -146,6 +153,7 @@ class ResourceUrlResolver {
   }
 }
 
+@Injectable()
 class ResourceResolverConfig {
   bool useRelativeUrls;
   
