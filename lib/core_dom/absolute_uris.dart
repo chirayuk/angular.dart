@@ -133,6 +133,11 @@ class ResourceUrlResolver {
       uri = baseUri.path;
     } else {
       // if it's absolute but not package-relative, then just use that
+      // The "packages/" test is just for backward compatibility.  It's ok to
+      // not resolve them, even through they're relative URLs, because in a Dart
+      // application, "packages/" is managed by pub which creates a symlinked
+      // hierarchy and they should all resolve to the same file at any level
+      // that a "packages/" exists.
       if (uri.startsWith("/") || uri.startsWith('packages/')) {
         return uri;
       }
