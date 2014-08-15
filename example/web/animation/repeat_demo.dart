@@ -3,8 +3,8 @@ part of animation;
 @Component(
     selector: 'repeat-demo',
     useShadowDom: false,
-    // templateUrl: 'repeat_demo.html',
-    templateUrl: 'animation/repeat_demo.html',
+    templateUrl: 'repeat_demo.html',
+    // templateUrl: 'animation/repeat_demo.html',
     publishAs: 'ctrl',
     applyAuthorStyles: true)
 class RepeatDemo {

@@ -164,7 +164,11 @@ class ResourceUrlResolver {
   }
 
   String combineWithType(Type type, String uri) {
-    return combine(_uriMapper.uriForType(type), uri);
+    if (_config.useRelativeUrls) {
+      return combine(_uriMapper.uriForType(type), uri);
+    } else {
+      return uri;
+    }
   }
 }
 

@@ -4,6 +4,10 @@ import 'package:angular/angular.dart';
 import 'package:angular/application_factory.dart';
 import 'package:angular/animate/module.dart';
 
+import 'package:angular_dart_example/foo.dart';
+
+import 'foo2/repeat_demo2.dart';
+
 part 'repeat_demo.dart';
 part 'visibility_demo.dart';
 part 'stress_demo.dart';
@@ -21,11 +25,13 @@ class AnimationDemoModule extends Module {
   AnimationDemoModule() {
     install(new AnimationModule());
     bind(RepeatDemo);
+    bind(RepeatDemo2);
+    bind(FooComponent);
     bind(VisibilityDemo);
     bind(StressDemo);
     bind(CssDemo);
     bind(AnimationDemo);
-    bind(ResourceResolverConfig, toValue: new ResourceResolverConfig(useRelativeUrls: false));
+    bind(ResourceResolverConfig, toValue: new ResourceResolverConfig(useRelativeUrls: true));
   }
 }
 main() {
