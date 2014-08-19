@@ -1,0 +1,6 @@
+/* This file is not really needed for testing as test in template_uri_spec.dart
+ * already cover this.  It's here just for completeness. */
+
+div {
+  background-image: url(foo.png);
+}
