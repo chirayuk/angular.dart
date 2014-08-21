@@ -43,22 +43,18 @@ packages:
     description: intl
     source: hosted
     version: "0.8.10+4"
+  js:
+    description: js
+    source: hosted
+    version: "0.2.2"
   logging:
     description: logging
     source: hosted
     version: "0.9.1+1"
-  matcher:
-    description: matcher
-    source: hosted
-    version: "0.10.0"
   meta:
     description: meta
     source: hosted
     version: "0.8.8"
-  mock:
-    description: mock
-    source: hosted
-    version: "0.10.0+1"
   path:
     description: path
     source: hosted
@@ -67,6 +63,10 @@ packages:
     description: perf_api
     source: hosted
     version: "0.0.9"
+  protractor:
+    description: protractor
+    source: hosted
+    version: "0.0.5"
   route_hierarchical:
     description: route_hierarchical
     source: hosted
@@ -87,10 +87,6 @@ packages:
     description: typed_mock
     source: hosted
     version: "0.0.4"
-  unittest:
-    description: unittest
-    source: hosted
-    version: "0.10.1+2"
   utf:
     description: utf
     source: hosted

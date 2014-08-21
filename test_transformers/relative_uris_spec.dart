@@ -6,7 +6,10 @@ main() {
   describe('relative-uri rewriting in static application', () {
     it('should rewrite a relative uri', () {
       var ptor = protractor.getInstance().get('index.html');
-      expect(ptor.isElementPresent(by.id('test_div'))).toBe(true);
+      var test_div = element(by.id('test_div'));
+      expect(test_div.isPresent()).toEqual(true);
+      expect(test_div.getText()).toEqual(
+          'Why hello there, Relative Foo...');
     });
   });
 }
