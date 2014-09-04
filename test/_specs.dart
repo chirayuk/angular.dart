@@ -41,17 +41,11 @@ es(String html) {
 
 e(String html) => es(html).first;
 
-// This would be "base/test/core/" when running under Karma.  However, it can be
-// different with a different test runner so we will determine it dynamically.
-String get dynamicUrlPrefix {
-  var pathSegments = Uri.base.pathSegments;
-  // get rid of the html file at the end.
-  pathSegments = pathSegments.sublist(0, pathSegments.length - 1);
-  print("dsds: Uri.base: ${Uri.base}");
-  print("dsds: pathSegments: ${pathSegments}");
-  print("dsds: dynamicUrlPrefix: ${pathSegments.join('/')}/");
-  return "${pathSegments.join('/')}/";
-}
+// All our tests files are served under this prefix when run under Karma.  (i.e.
+// this file, _specs.dart, is at path /base/test/_specs.dart.  However, if
+// you're using a different test server or reconfigured the base prefix, then
+// you can set this to something different.
+String TEST_SERVER_BASE_PREFIX = "base/";
 
 Expect expect(actual, [matcher]) {
   final expect = new Expect(actual);

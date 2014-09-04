@@ -66,7 +66,7 @@ _run({resolveUrls, staticMode}) {
   else if (staticMode) prefix = "packages/test.angular.core_dom/";
   else prefix = dynamicUrlPrefix;
   
-  describe('template url resolveUrls=${resolveUrls}, mode=${staticMode ? 'static' : 'dynamic'}', () {
+  ddescribe('template url resolveUrls=${resolveUrls}, mode=${staticMode ? 'static' : 'dynamic'}', () {
        
     beforeEachModule((Module m) {
       m.bind(ResourceResolverConfig, toValue: 
@@ -325,8 +325,8 @@ _run({resolveUrls, staticMode}) {
 }
 
 void main() {
-  // _run(resolveUrls: true, staticMode: true);
-  // _run(resolveUrls: true, staticMode: false);
-  // _run(resolveUrls: false, staticMode: true);
+  _run(resolveUrls: true, staticMode: true);
+  _run(resolveUrls: true, staticMode: false);
+  _run(resolveUrls: false, staticMode: true);
   _run(resolveUrls: false, staticMode: false);
 }
