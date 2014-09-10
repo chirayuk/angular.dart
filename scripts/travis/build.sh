@@ -3,6 +3,22 @@
 set -e -o pipefail
 . "$(dirname $0)/../env.sh"
 
+
+background_pids=()
+
+function background_wait() {
+  wait ${background_pids[@]}
+  background_pids=()
+}
+
+background() {
+  set -eE -o pipefail
+  ( set -eE -o pipefail ; background_pids=() ; trap "kill 0 ; kill $$" ERR ; trap background_wait EXIT ; "$@" ) &
+  background_pids+=($!)
+}
+
+trap background_wait EXIT
+
 echo '==========='
 echo '== BUILD =='
 echo '==========='
@@ -52,90 +68,96 @@ if [[ $JOB == e2e-* ]]; then
 fi
 
 
-if [[ $TESTS == "dart2js" ]]; then
-  # skip auxiliary tests if we are only running dart2js
-  echo '------------------------'
-  echo '-- BUILDING: examples --'
-  echo '------------------------'
+echo '------------------------'
+echo '-- BUILDING: examples --'
+echo '------------------------'
 
+function build_and_check_sizes() {
   if [[ $CHANNEL == "DEV" ]]; then
-    ($DART "$NGDART_BASE_DIR/bin/pub_build.dart" -p example \
+    $DART "$NGDART_BASE_DIR/bin/pub_build.dart" -p example \
         -e "$NGDART_BASE_DIR/example/expected_warnings.json"
-     checkAllSizes
-    ) &
   else
-    (cd example; pub build ; checkAllSizes) &
+    cd example
+    pub build
   fi
+  checkAllSizes
+}
 
-else
-  echo '--------------'
-  echo '-- TEST: io --'
-  echo '--------------'
-  $DART --checked $NGDART_BASE_DIR/test/io/all.dart
+background build_and_check_sizes
 
-  echo '----------------------------'
-  echo '-- TEST: symbol extractor --'
-  echo '----------------------------'
-  $DART --checked $NGDART_BASE_DIR/test/tools/symbol_inspector/symbol_inspector_spec.dart
+echo '--------------'
+echo '-- TEST: io --'
+echo '--------------'
+$DART --checked $NGDART_BASE_DIR/test/io/all.dart
 
-  $NGDART_SCRIPT_DIR/generate-expressions.sh
-  $NGDART_SCRIPT_DIR/analyze.sh
+echo '----------------------------'
+echo '-- TEST: symbol extractor --'
+echo '----------------------------'
+$DART --checked $NGDART_BASE_DIR/test/tools/symbol_inspector/symbol_inspector_spec.dart
 
-  echo '-----------------------'
-  echo '-- TEST: transformer --'
-  echo '-----------------------'
-  $DART --checked $NGDART_BASE_DIR/test/tools/transformer/all.dart
+$NGDART_SCRIPT_DIR/generate-expressions.sh
+$NGDART_SCRIPT_DIR/analyze.sh
 
-  echo '---------------------'
-  echo '-- TEST: changelog --'
-  echo '---------------------'
-  $NGDART_BASE_DIR/node_modules/jasmine-node/bin/jasmine-node \
-        $NGDART_SCRIPT_DIR/changelog/;
+echo '-----------------------'
+echo '-- TEST: transformer --'
+echo '-----------------------'
+$DART --checked $NGDART_BASE_DIR/test/tools/transformer/all.dart
 
-  (
-    echo '---------------------'
-    echo '-- TEST: benchmark --'
-    echo '---------------------'
-    cd $NGDART_BASE_DIR/benchmark
-    $PUB install
-
-    for file in *_perf.dart; do
-      echo ======= $file ========
-      $DART $file
-    done
-  )
-fi
+echo '---------------------'
+echo '-- TEST: changelog --'
+echo '---------------------'
+$NGDART_BASE_DIR/node_modules/jasmine-node/bin/jasmine-node \
+      $NGDART_SCRIPT_DIR/changelog/;
 
 echo '-----------------------'
 echo '-- TEST: AngularDart --'
 echo '-----------------------'
-echo BROWSER=$BROWSERS
+export BROWSER=DartiumWithWebPlatform
 
-_run_karma_tests() {(
+_run_one_karma_shard() {
+  export KARMA_SHARD_ID=$1
+  node "node_modules/karma/bin/karma" start karma.conf \
+      --reporters=junit,dots --port=$((8765+KARMA_SHARD_ID)) \
+      --browsers=$BROWSERS --single-run
+}
+
+run_karma_tests() {
   $NGDART_BASE_DIR/node_modules/jasmine-node/bin/jasmine-node playback_middleware/spec/
 
-  _run_once() {
-    export KARMA_SHARD_ID=$1
-    node "node_modules/karma/bin/karma" start karma.conf \
-        --reporters=junit,dots --port=$((8765+KARMA_SHARD_ID)) \
-        --browsers=$BROWSERS --single-run
-  }
-  export -f _run_once
-
-  if [[ $TESTS == "dart2js" ]]; then
+  if [[ "$BROWSERS" =~ Firefox ]]; then
     # Ref: test/_specs.dart: _numKarma shards.
     # Prime the dart2jsaas cache.
-    NUM_KARMA_SHARDS=0 BROWSERS=SL_Chrome _run_once 0
+    NUM_KARMA_SHARDS=0 BROWSERS=SL_Chrome _run_one_karma_shard 0
     # Run sharded karma tests.
     export NUM_KARMA_SHARDS=4
-    seq 0 $((NUM_KARMA_SHARDS-1)) | xargs -n 1 -P $NUM_KARMA_SHARDS -I SHARD_ID \
-      bash -c '_run_once SHARD_ID'
+    for SHARD_ID in seq 0 $((NUM_KARMA_SHARDS-1)) ; do
+      background _run_one_karma_shard $SHARD_ID
+    done
   else
-    _run_once
+    background _run_one_karma_shard
   fi
-)}
+}
 
-_run_karma_tests
+export BROWSERS=DartiumWithWebPlatform
+run_karma_tests
+export BROWSERS=SL_Chrome,SL_Firefox
+run_karma_tests
+
+# ensure no background jobs when running benchmark tests.
+background_wait
+
+(
+  echo '---------------------'
+  echo '-- TEST: benchmark --'
+  echo '---------------------'
+  cd $NGDART_BASE_DIR/benchmark
+  $PUB install
+
+  for file in *_perf.dart; do
+    echo ======= $file ========
+    $DART $file
+  done
+)
 
 echo '-------------------------'
 echo '-- DOCS: Generate Docs --'

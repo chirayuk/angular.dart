@@ -56,9 +56,7 @@ fi
 
 URL_PREFIX=https://storage.googleapis.com/dart-archive/channels/$CHANNEL/release/$SVN_REVISION
 DART_SDK_URL=$URL_PREFIX/sdk/dartsdk-linux-x64-release.zip
-if [[ "${BROWSERS,,}" =~ "dartium" ]]; then
-  DARTIUM_URL=$URL_PREFIX/dartium/dartium-linux-x64-release.zip
-fi
+DARTIUM_URL=$URL_PREFIX/dartium/dartium-linux-x64-release.zip
 
 parallel_get() {(
   _download_and_unzip() {

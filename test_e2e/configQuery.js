@@ -7,15 +7,15 @@ var runningOnTravis = (env.TRAVIS !== undefined);
 
 
 function getBaseUrl(configWithEnvKey) {
-    if (env[configWithEnvKey.envVar]) {
-	return env[configWithEnvKey.envVar];
-    } else if (env.USER == 'chirayu') {
-	return 'http://example.ngdart.localhost';
-    } else {
+  if (env[configWithEnvKey.envVar]) {
+    return env[configWithEnvKey.envVar];
+  } else if (env.USER == 'chirayu') {
+    return 'http://example.ngdart.localhost';
+  } else {
     // Default host:port when you run "pub serve" from the example
     // subdirectory of the AngularDart repo.
-	return 'http://localhost:8080';
-    }
+    return 'http://localhost:8080';
+  }
 }
 
 
@@ -46,25 +46,25 @@ function getDartiumBinary() {
 }
 
 
+// ckck
 function getChromeOptions() {
-    if (!runningOnTravis) {
-	return {'binary': getDartiumBinary()};
-    }
-  // In Travis, the list of browsers to test is specified as a CSV in the
+  if (!runningOnTravis) {
+    return {'binary': getDartiumBinary()};
+  }
+  // On Travis, the list of browsers to test is specified as a CSV in the
   // BROWSERS environment variable.
   // TODO(chirayu): Parse the BROWSERS csv so we also test on Firefox.
-    if (env.TESTS == "vm") {
-	return {'binary': env.DARTIUM_BIN};
-    }
-    if (env.TESTS == "dart2js") {
-	return {
-	    'binary': env.CHROME_BIN,
-      // Ref: https://github.com/travis-ci/travis-ci/issues/938
-      //      https://sites.google.com/a/chromium.org/chromedriver/help/chrome-doesn-t-start
-	    'args': ['no-sandbox=true']
-	};
-    }
-    throw new Error("Unknown Travis configuration specified by TESTS variable");
+  if (env.TESTS == "vm") {
+    return {'binary': env.DARTIUM_BIN};
+  } else if (env.TESTS == "dart2js") {
+    return {
+        'binary': env.CHROME_BIN,
+        // Ref: https://github.com/travis-ci/travis-ci/issues/938
+        //      https://sites.google.com/a/chromium.org/chromedriver/help/chrome-doesn-t-start
+        'args': ['no-sandbox=true']
+    };
+  }
+  throw new Error("Unknown Travis configuration specified by TESTS variable");
 }
 
 

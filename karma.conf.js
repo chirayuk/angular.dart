@@ -1,8 +1,7 @@
 var env = process.env;
 
 function getClientArgs() {
-  if (env.TRAVIS == null || env.TESTS != "dart2js" ||
-      env.NUM_KARMA_SHARDS == null || env.KARMA_SHARD_ID == "") {
+  if (env.NUM_KARMA_SHARDS == null || env.KARMA_SHARD_ID == null) {
     return null;
   }
   return {
