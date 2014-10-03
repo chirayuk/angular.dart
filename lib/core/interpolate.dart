@@ -1,5 +1,14 @@
 part of angular.core_internal;
 
+class Interpolation {
+  final String expression;
+  final List<String> bindingExpressions;
+
+  Interpolation(this.expression, this.bindingExpressions);
+}
+
+final EMPTY_INTERPOLATION = new Interpolation("", <String>[]);
+
 /**
  * Compiles a string with markup into an expression. This service is used by the
  * HTML [Compiler] service for data binding.
@@ -15,6 +24,7 @@ class Interpolate implements Function {
   Interpolate(CacheRegister cacheRegister) {
     cacheRegister.registerCache("Interpolate", _cache);
   }
+
   /**
    * Compiles markup text into expression.
    *
@@ -25,9 +35,24 @@ class Interpolate implements Function {
    * - [startSymbol]: The symbol to start interpolation. '{{' by default.
    * - [endSymbol]: The symbol to end interpolation. '}}' by default.
    */
-
   String call(String template, [bool mustHaveExpression = false,
               String startSymbol = '{{', String endSymbol = '}}']) {
+    Interpolation interp = interpolate(template, mustHaveExpression, startSymbol, endSymbol);
+    return (interp == null) ? interp : interp.expression;
+  }
+
+  /**
+   * Compiles markup text into expression.
+   *
+   * - [template]: The markup text to interpolate in form `foo {{expr}} bar`.
+   * - [mustHaveExpression]: if set to true then the interpolation string must
+   *   have embedded expression in order to return an expression. Strings with
+   *   no embedded expression will return null.
+   * - [startSymbol]: The symbol to start interpolation. '{{' by default.
+   * - [endSymbol]: The symbol to end interpolation. '}}' by default.
+   */
+  Interpolation interpolate(String template, [bool mustHaveExpression = false,
+                            String startSymbol = '{{', String endSymbol = '}}']) {
     if (mustHaveExpression == false && startSymbol == '{{' && endSymbol == '}}') {
       // cachable
       return _cache.putIfAbsent(template, () => _call(template, mustHaveExpression, startSymbol, endSymbol));
@@ -35,9 +60,9 @@ class Interpolate implements Function {
     return _call(template, mustHaveExpression, startSymbol, endSymbol);
   }
 
-  String _call(String template, [bool mustHaveExpression = false,
-              String startSymbol, String endSymbol]) {
-    if (template == null || template.isEmpty) return "";
+  Interpolation _call(String template, [bool mustHaveExpression = false,
+                      String startSymbol, String endSymbol]) {
+    if (template == null || template.isEmpty) return EMPTY_INTERPOLATION;
 
     final startLen = startSymbol.length;
     final endLen = endSymbol.length;
@@ -51,6 +76,7 @@ class Interpolate implements Function {
 
     String exp;
     final expParts = <String>[];
+    final bindings = <String>[];
 
     while (index < length) {
       startIdx = template.indexOf(startSymbol, index);
@@ -61,7 +87,9 @@ class Interpolate implements Function {
           // formatter
           expParts.add(_wrapInQuotes(template.substring(index, startIdx)));
         }
-        expParts.add('(' + template.substring(startIdx + startLen, endIdx) + '|stringify)');
+        var binding = template.substring(startIdx + startLen, endIdx);
+        bindings.add(binding);
+        expParts.add('(' + binding + '|stringify)');
 
         index = endIdx + endLen;
         hasInterpolation = true;
@@ -72,7 +100,8 @@ class Interpolate implements Function {
       }
     }
 
-    return !mustHaveExpression || hasInterpolation ? expParts.join('+') : null;
+    return !mustHaveExpression || hasInterpolation ?
+        new Interpolation(expParts.join('+'), bindings) : null;
   }
 
   String _wrapInQuotes(String s){
